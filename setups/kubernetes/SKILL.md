@@ -205,7 +205,7 @@ danube-admin cluster status
 danube-admin brokers list
 
 # Identify the cluster leader
-danube-admin brokers leader
+danube-admin brokers leader-broker
 
 # Check load distribution
 danube-admin brokers balance

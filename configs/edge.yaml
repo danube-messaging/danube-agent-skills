@@ -43,13 +43,13 @@ mqtt:
   topic_mappings:
     - mqtt_pattern: "device/+/telemetry"
       danube_topic: "/edge1/telemetry"
-      schema_subject: "telemetry-events"
+      # schema_subject: "telemetry-events"   # Optional: requires schema pre-registered on cluster
       extract_attributes:
         device_id: "$1"
 
     - mqtt_pattern: "sensors/+/+"
       danube_topic: "/edge1/sensors"
-      schema_subject: "sensor-readings"
+      # schema_subject: "sensor-readings"    # Optional: requires schema pre-registered on cluster
       extract_attributes:
         sensor_type: "$1"
         measurement: "$2"

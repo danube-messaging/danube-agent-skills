@@ -25,8 +25,10 @@ broker:
   #   connect_url: "danube-proxy.example.com:6650"
 
 # Raft metadata store — standalone mode (no seed_nodes)
+# NOTE: meta_store.data_dir is overridden by --data-dir CLI flag.
+#       Set it here as a fallback only.
 meta_store:
-  data_dir: "./danube-data/raft"
+  data_dir: "./data/raft"
   # For multi-node cluster, uncomment and list all peers:
   # seed_nodes:
   #   - "0.0.0.0:7650"
@@ -67,7 +69,10 @@ load_manager:
 
 storage:
   mode: local
-  local_wal_root: "./danube-data/wal"
+  # IMPORTANT: local_wal_root is NOT overridden by --data-dir.
+  # The setup script patches this to point inside $TEST_RUN/data/wal.
+  # If running manually, change this to your desired WAL directory.
+  local_wal_root: "./data/wal"
   metadata_prefix: "/danube"
   local_retention:
     time_minutes: 2880

@@ -15,173 +15,41 @@ None — this IS the setup.
 - The Danube source repository cloned locally
 - `make` (GNU Make)
 
-## Prerequisites Check
+## How to Run
+
+Use the setup script. It validates the repo path, builds via the Makefile, waits for readiness, and verifies cluster health — all in one command.
 
 ```bash
-# Check Rust toolchain
-which cargo && cargo --version
-which rustc && rustc --version
+# Build and start a 3-broker cluster from source
+./scripts/setup_local_source.sh /path/to/danube 3
 
-# Check make
-which make
-
-# Check that the Danube repo exists
-# Ask the user for the path to the Danube source repository
-DANUBE_REPO=""  # ← user must provide this
-ls "$DANUBE_REPO/Makefile" && echo "Danube repo found at $DANUBE_REPO"
-
-# Check for existing Danube processes
-pgrep -la danube-broker
-
-# Check port availability
-ss -lntp | grep -E '(6650|6651|6652|50051|50052|50053|7650|7651|7652)'
+# Cleanup
+cd /path/to/danube && make brokers-clean
 ```
 
-## Steps
+The user **must provide the path** to their local Danube source repository. Do not hardcode any path.
 
-### Step 1: Create the Test-Run Directory
+The script is at `scripts/setup_local_source.sh` — read it for the full implementation details.
 
-```bash
-TEST_RUN="runs/test_$(date +%Y%m%d_%H%M%S)"
-mkdir -p "$TEST_RUN"/{data,logs}
-echo "Test run directory: $TEST_RUN"
-```
+## Key Concepts
 
-### Step 2: Set the Danube Repo Path
+### The Makefile Drives Everything
+The Danube source repo has a Makefile that handles building and running brokers. The setup script calls `make brokers` — it does not build or start brokers manually.
 
-**Ask the user where the Danube source repository is cloned.**
+Logs are saved to `temp/broker_<port>.log` in the Danube repo directory (not in `$TEST_RUN`).
 
-```bash
-DANUBE_REPO=""  # provided by the user
-ls "$DANUBE_REPO/Makefile" && echo "Found Danube repo at $DANUBE_REPO"
-```
+### This Setup Is Cluster-Only
+The Makefile always runs brokers in cluster mode (with config file + seed nodes). For standalone mode, use `setups/local-binary/` instead.
 
-### Step 3: Prepare Configuration
+### Config Options
+- **Default**: The Makefile uses `./config/danube_broker.yml` from the Danube repo
+- **Custom**: Pass `CONFIG_FILE=<path>` to make (e.g., `make brokers CONFIG_FILE=path/to/config.yml`)
+- **Test-specific**: The repo includes configs in `config/for_tests/` (rebalance, shared_fs, write_buffer)
 
-Choose one based on the scenario:
+### Binaries Are Built Locally
+After `make brokers`, binaries are at `$DANUBE_REPO/target/release/danube-broker` (and `danube-cli`, `danube-admin`). These are local to the source repo, not shared in `bin/<version>/`.
 
-#### Option A: Use the Default Repo Config (simplest)
-
-```bash
-# The Makefile uses the repo's own config by default
-# No action needed — the Makefile points to ./config/danube_broker.yml
-```
-
-#### Option B: Use a Custom Config
-
-```bash
-# Copy a config template to the test-run directory
-cp configs/default.yml "$TEST_RUN/danube_broker.yml"
-
-# Modify as needed for your scenario, then pass it to make:
-# CONFIG_FILE="$TEST_RUN/danube_broker.yml"
-```
-
-#### Option C: Use a Test-Specific Config from the Repo
-
-The Danube repo includes test-specific configs:
-
-```bash
-ls "$DANUBE_REPO/config/for_tests/"
-# danube_broker_rebalance.yml    — aggressive rebalancing
-# danube_broker_shared_fs.yml    — shared filesystem storage
-# danube_broker_write_buffer.yml — Valkey write buffer
-```
-
-### Step 4: Build and Start Brokers
-
-Use the Makefile to build and start brokers:
-
-```bash
-cd "$DANUBE_REPO"
-
-# Build and start 3 brokers (default)
-make brokers
-
-# Or with a custom config:
-# make brokers CONFIG_FILE="$TEST_RUN/danube_broker.yml"
-
-# Or with custom number of brokers:
-# make brokers NUM_BROKERS=5
-```
-
-**Expected output**:
-```
-Building Danube brokers...
-Seed nodes: 0.0.0.0:7650,0.0.0.0:7651,0.0.0.0:7652
-Starting broker 0: client=6650 admin=50051 raft=7650 prom=9040
-Starting broker 1: client=6651 admin=50052 raft=7651 prom=9041
-Starting broker 2: client=6652 admin=50053 raft=7652 prom=9042
-
-3 broker(s) started — cluster auto-bootstraps via seed nodes.
-```
-
-> **Note**: Logs are saved to `temp/broker_<port>.log` in the Danube repo directory.
-> For standalone mode, use the `setups/local-binary/` setup instead.
-
-### Step 5: Wait for Readiness
-
-```bash
-cd "$DANUBE_REPO"
-
-# Check cluster status (also builds danube-admin if needed)
-make cluster-status
-
-# Or manually:
-echo "Waiting for cluster readiness..."
-for attempt in $(seq 1 30); do
-  if ./target/release/danube-admin cluster status 2>/dev/null; then
-    echo "Cluster is ready!"
-    break
-  fi
-  echo "  Attempt $attempt/30 — waiting 2s..."
-  sleep 2
-done
-```
-
-**Expected**: Cluster status shows all brokers with a leader elected.
-
-### Step 6: Verify Cluster Health
-
-```bash
-cd "$DANUBE_REPO"
-
-# Raft cluster state
-./target/release/danube-admin cluster status
-
-# List all brokers and their status
-./target/release/danube-admin brokers list
-
-# Identify the cluster leader
-./target/release/danube-admin brokers leader
-
-# Check load distribution
-./target/release/danube-admin brokers balance
-```
-
-**Expected**: All brokers show status `active`, a leader is elected, and load is balanced.
-
-### Step 7: Check Broker Logs
-
-The Makefile saves broker logs to `temp/` in the Danube repo:
-
-```bash
-# Check broker 0 logs
-tail -30 "$DANUBE_REPO/temp/broker_6650.log"
-
-# Check broker 1 logs
-tail -30 "$DANUBE_REPO/temp/broker_6651.log"
-
-# Check broker 2 logs
-tail -30 "$DANUBE_REPO/temp/broker_6652.log"
-
-# Look for errors across all brokers
-grep -i "error\|panic\|fatal" "$DANUBE_REPO/temp/broker_"*.log
-```
-
-**Expected**: No errors or panics. Logs show successful Raft leader election and cluster formation.
-
-### Available Makefile Targets
+## Available Makefile Targets
 
 | Target | Description |
 |--------|-------------|
@@ -197,7 +65,7 @@ grep -i "error\|panic\|fatal" "$DANUBE_REPO/temp/broker_"*.log
 | `make prom` | Start Prometheus in Docker on port 9090 |
 | `make prom-clean` | Stop Prometheus container |
 
-### Makefile Variables
+## Makefile Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -208,44 +76,22 @@ grep -i "error\|panic\|fatal" "$DANUBE_REPO/temp/broker_"*.log
 | `BASE_RAFT_PORT` | `7650` | Starting port for Raft transport |
 | `BASE_PROM_PORT` | `9040` | Starting port for Prometheus metrics |
 
-## Verification
+## Verification Checklist
 
 - [ ] `cargo build --release` completes successfully
-- [ ] `./target/release/danube-broker --version` outputs version
 - [ ] `make cluster-status` shows all brokers and a leader
 - [ ] `danube-admin brokers list` shows all brokers as `active`
 - [ ] `danube-admin brokers balance` shows balanced load
-- [ ] Broker logs show no errors: `grep -i error temp/broker_*.log`
-
-## Cleanup
-
-```bash
-cd "$DANUBE_REPO"
-
-# Stop all brokers (keep data for restart testing)
-make brokers-stop
-
-# Or stop and clean all data
-make brokers-clean
-
-# Stop admin server if running
-make admin-clean
-
-# Stop Prometheus if running
-make prom-clean
-
-# Verify nothing is running
-pgrep -la danube-broker && echo "WARNING: still running" || echo "All stopped"
-```
+- [ ] Broker logs show no errors: `grep -i "ERROR\|PANIC\|FATAL" temp/broker_*.log`
 
 ## Troubleshooting
 
-- **Cargo build fails**: Ensure Rust toolchain is up to date: `rustup update`. Check that you're on a supported Rust version (check the repo's `rust-toolchain.toml` or `Cargo.toml`).
+- **Cargo build fails**: Ensure Rust toolchain is up to date: `rustup update`. Check the repo's `rust-toolchain.toml` or `Cargo.toml` for the required Rust version.
 
 - **Broker crashes on start**: Check the log file: `tail -50 temp/broker_6650.log`. Common causes: port conflict, corrupted Raft data.
 
 - **Raft cluster won't form**: Delete stale data: `make data-clean`, then restart: `make brokers`.
 
-- **Build is slow**: First build compiles all dependencies (~5-10 minutes). Subsequent builds are incremental and much faster. Use `cargo build --release` for production-like binaries.
+- **Build is slow**: First build compiles all dependencies (~5-10 minutes). Subsequent builds are incremental and much faster.
 
 - **Can't find the binary**: After `make brokers`, binaries are at `$DANUBE_REPO/target/release/danube-broker` (and `danube-cli`, `danube-admin`).

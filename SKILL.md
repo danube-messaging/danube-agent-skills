@@ -29,6 +29,12 @@ danube-agent-skills/
 │   └── kubernetes/             # Deploy to Kubernetes
 │       └── SKILL.md
 │
+├── scripts/                    # Executable setup scripts (run in one command)
+│   ├── setup_local_binary.sh   # Download binaries + start brokers
+│   ├── setup_local_source.sh   # Build from source + start brokers
+│   ├── setup_docker_compose.sh # Docker Compose setup
+│   └── cleanup.sh              # Stop all processes and containers
+│
 ├── tools/                      # Operational tool references
 │   ├── SKILL.md                # Overview: CLI vs Admin
 │   ├── danube-cli/             # Data plane operations
@@ -152,7 +158,6 @@ Do not spin up Docker containers, start brokers, or download binaries without te
 Before running any setup, verify the environment:
 ```bash
 # Check required tools
-which danube-cli && danube-cli --version
 which danube-admin && danube-admin --version
 which docker && docker --version
 docker compose version
@@ -221,9 +226,9 @@ Additional services:
 
 | User Goal | Read These Skills |
 |-----------|------------------|
-| "I want to try Danube" | `configs/SKILL.md` → `setups/docker-compose/SKILL.md` |
-| "Run a quick test" | `configs/SKILL.md` → `setups/local-binary/SKILL.md` |
+| "I want to try Danube" | `./scripts/setup_docker_compose.sh quickstart` |
+| "Run a quick test" | `./scripts/setup_local_binary.sh standalone v0.15.0` |
 | "Test broker scaling" | `configs/flavors/SKILL.md` (Cluster + Rebalance) → `setups/docker-compose/SKILL.md` → `scenarios/broker-scaling/SKILL.md` |
-| "I'm developing Danube" | `setups/local-source/SKILL.md` |
+| "I'm developing Danube" | `./scripts/setup_local_source.sh /path/to/danube` |
 | "Deploy to Kubernetes" | `configs/SKILL.md` → `setups/kubernetes/SKILL.md` |
 | "Test Edge/MQTT" | `configs/edge.yaml` → `setups/local-binary/SKILL.md` (edge mode) |

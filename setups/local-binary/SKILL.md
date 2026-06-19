@@ -14,334 +14,116 @@ None — this IS the setup.
 - `curl` or `wget` (for downloading binaries)
 - `tar` (for extracting archives)
 
-## Prerequisites Check
+## How to Run
+
+Use the setup script. It handles binary download, OS detection, config copying, broker startup, readiness polling, and health verification — all in one command.
 
 ```bash
-# Check download tools
-which curl || which wget
+# Standalone (single broker, no config needed)
+./scripts/setup_local_binary.sh standalone v0.15.0
 
-# Check for existing Danube processes
-pgrep -la danube-broker
+# 3-broker cluster
+./scripts/setup_local_binary.sh cluster v0.15.0 3
 
-# Check port availability
-ss -lntp | grep -E '(6650|6651|6652|50051|50052|50053|7650|7651|7652)'
+# Cleanup everything
+./scripts/cleanup.sh
 ```
 
-## Steps
+The script is at `scripts/setup_local_binary.sh` — read it for the full implementation details.
 
-### Step 1: Create the Test-Run Directory
+## Modes
 
-```bash
-TEST_RUN="runs/test_$(date +%Y%m%d_%H%M%S)"
-mkdir -p "$TEST_RUN"/{data,logs}
-echo "Test run directory: $TEST_RUN"
-```
+### Standalone
+- Runs a single broker with `--mode standalone`
+- **No config file needed** — the broker auto-generates sensible defaults
+- Broker listens on `127.0.0.1:6650` (client) and `127.0.0.1:50051` (admin)
+- Raft runs in single-node mode — `cluster status`, `brokers balance`, and `brokers leader-broker` are **not available** and will return errors
+- Verification: `danube-admin brokers list` shows one broker as `active`
 
-### Step 2: Set the Release Version
+### Cluster
+- Runs N brokers (default 3) with `--config-file` and port offsets
+- Config is copied from `configs/default.yml` into `$TEST_RUN/danube_broker.yml`
+- Seed nodes are passed via `--seed-nodes` CLI flag (not embedded in the config)
+- Raft elects a leader within ~10 seconds
+- Verification: `danube-admin brokers list` shows all brokers `active`, `cluster status` shows a leader
 
-The user must provide the Danube release version. **Ask the user which version to use.**
+### Edge (manual — not in setup script)
+Edge mode requires a running cluster first. It is not covered by the setup script because it depends on having a cluster already up.
 
-```bash
-DANUBE_VERSION="v0.15.0"  # provided by the user
-DANUBE_BIN="bin/${DANUBE_VERSION}"
-```
+1. Start a cluster (standalone or multi-broker) using the script
+2. Create the edge namespace on the cluster: `danube-admin namespaces create edge1`
+   - The namespace name must match `edge.edge_name` in `configs/edge.yaml`
+   - Without this, the edge broker fails with `"Unable to find the namespace"`
+3. Copy the edge config: `cp configs/edge.yaml "$TEST_RUN/edge.yaml"`
+   - `cluster_url` defaults to `http://127.0.0.1:6650` — correct for local setup
+   - `schema_subject` in topic mappings is **optional** — remove it for basic testing, otherwise the referenced schemas must be pre-registered on the cluster
+4. Start the edge broker from inside `$TEST_RUN/`:
+   ```bash
+   "$DANUBE_BIN/danube-broker" \
+     --mode edge \
+     --data-dir "./data/edge" \
+     --edge-config "./edge.yaml" \
+     --broker-addr "0.0.0.0:6653" \
+     --admin-addr "0.0.0.0:50054" \
+     --raft-addr "0.0.0.0:7653" \
+     > "./logs/edge_broker.log" 2>&1 &
+   ```
+5. Test MQTT ingestion (requires `mosquitto_pub`):
+   ```bash
+   mosquitto_pub -h 127.0.0.1 -p 1883 \
+     -t "device/sensor-1/telemetry" \
+     -m '{"temperature": 25.5, "device_id": "sensor-1"}'
+   ```
 
-### Step 3: Detect OS and Architecture
+## Key Concepts
 
-```bash
-OS_RAW=$(uname -s)
-ARCH=$(uname -m)
+### Binary Downloads Are Shared
+Binaries live in `bin/<version>/` at the repo root and are reused across all test runs. The script skips download if they already exist.
 
-# Map to Danube release naming convention
-case "$OS_RAW" in
-  Linux)   OS_TARGET="x86_64-unknown-linux-gnu"   ;; # default for Linux x86_64
-  Darwin)  OS_TARGET="aarch64-apple-darwin"        ;; # default for macOS Apple Silicon
-  MINGW*|MSYS*|CYGWIN*) OS_TARGET="x86_64-pc-windows-msvc" ;;
-  *)       echo "Unsupported OS: $OS_RAW"; exit 1 ;;
-esac
-
-# Refine by architecture
-case "$ARCH" in
-  x86_64)
-    case "$OS_RAW" in
-      Linux)  OS_TARGET="x86_64-unknown-linux-gnu" ;;
-      Darwin) OS_TARGET="x86_64-apple-darwin" ;;
-    esac ;;
-  aarch64|arm64)
-    case "$OS_RAW" in
-      Linux)  OS_TARGET="aarch64-unknown-linux-gnu" ;;
-      Darwin) OS_TARGET="aarch64-apple-darwin" ;;
-    esac ;;
-  *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
-esac
-
-# Archive extension
-case "$OS_RAW" in
-  MINGW*|MSYS*|CYGWIN*) EXT="zip" ;;
-  *) EXT="tar.gz" ;;
-esac
-
-echo "Detected: OS_TARGET=$OS_TARGET EXT=$EXT"
-```
-
-### Step 4: Download Binaries (shared across test runs)
-
-Binaries are downloaded to `bin/<version>/` at the repo root and reused by all test runs. **Skip this step if binaries already exist for the requested version.**
-
-The release page is: https://github.com/danube-messaging/danube/releases
-
-Download URL pattern:
+Release URL pattern:
 ```
 https://github.com/danube-messaging/danube/releases/download/<VERSION>/<BINARY>-<VERSION>-<OS_TARGET>.<EXT>
 ```
 
-Examples:
-- `danube-broker-v0.15.0-x86_64-unknown-linux-gnu.tar.gz`
-- `danube-cli-v0.15.0-aarch64-apple-darwin.tar.gz`
-- `danube-admin-v0.15.0-x86_64-pc-windows-msvc.zip`
+Three binaries are downloaded: `danube-broker`, `danube-cli`, `danube-admin`.
 
-```bash
-# Check if binaries already exist
-if [ -x "$DANUBE_BIN/danube-broker" ]; then
-  echo "Binaries already exist at $DANUBE_BIN — skipping download"
-else
-  mkdir -p "$DANUBE_BIN"
+### Brokers Run From Inside $TEST_RUN
+The script `cd`s into the test run directory before starting brokers. This ensures all relative paths in the config (e.g., `local_wal_root: "./data/wal"`) resolve inside the test run — keeping all data isolated.
 
-  for BINARY in danube-broker danube-cli danube-admin; do
-    ARCHIVE="${BINARY}-${DANUBE_VERSION}-${OS_TARGET}.${EXT}"
-    URL="https://github.com/danube-messaging/danube/releases/download/${DANUBE_VERSION}/${ARCHIVE}"
+### Config Path Behavior
+- `meta_store.data_dir` — overridden by `--data-dir` CLI flag (Raft data)
+- `storage.local_wal_root` — **NOT overridden by any CLI flag**. It reads from the config file and resolves relative to the broker's working directory. This is why brokers must run from `$TEST_RUN/`.
 
-    echo "Downloading $ARCHIVE..."
-    curl -L "$URL" -o "$DANUBE_BIN/$ARCHIVE"
+### CLI Quirks
+- `danube-broker` does **not** support `--version` or `--help`. Only `danube-admin` and `danube-cli` support `--version`.
+- Readiness checks should use `danube-admin brokers list` — it works in all modes (standalone, cluster, edge).
+- `danube-admin cluster status`, `brokers leader-broker`, and `brokers balance` only work in cluster mode.
 
-    # Extract
-    cd "$DANUBE_BIN"
-    if [ "$EXT" = "zip" ]; then
-      unzip -o "$ARCHIVE"
-    else
-      tar xzf "$ARCHIVE"
-    fi
-    rm -f "$ARCHIVE"
-    cd -
-  done
+## Verification Checklist
 
-  chmod +x "$DANUBE_BIN"/danube-*
-fi
-
-# Verify binaries
-"$DANUBE_BIN/danube-broker" --version
-"$DANUBE_BIN/danube-cli" --version
-"$DANUBE_BIN/danube-admin" --version
-```
-
-**Expected**: Version output for each binary.
-
-### Step 5: Prepare Configuration
-
-Choose one of these options based on the scenario:
-
-#### Option A: Standalone Mode (single broker, no config needed)
-
-No config file required. The `--mode standalone` flag generates sensible defaults.
-
-#### Option B: Standalone with Custom Config
-
-```bash
-cp configs/default.yml "$TEST_RUN/danube_broker.yml"
-```
-
-#### Option C: Multi-Broker Cluster
-
-```bash
-cp configs/default.yml "$TEST_RUN/danube_broker.yml"
-```
-
-Then add seed_nodes for the number of brokers:
-```yaml
-meta_store:
-  data_dir: "./danube-data/raft"
-  seed_nodes:
-    - "0.0.0.0:7650"
-    - "0.0.0.0:7651"
-    - "0.0.0.0:7652"
-```
-
-#### Option D: Apply a Config Flavor
-
-```bash
-# Copy the default config
-cp configs/default.yml "$TEST_RUN/danube_broker.yml"
-# Then read configs/flavors/SKILL.md for the scenario-specific deltas
-# and apply only the documented changes (e.g., enable rebalancing, change storage mode)
-```
-
-
-### Step 6: Start Brokers
-
-#### Standalone Mode (simplest)
-
-```bash
-"$DANUBE_BIN/danube-broker" \
-  --mode standalone \
-  --data-dir "$TEST_RUN/data/standalone" \
-  > "$TEST_RUN/logs/broker_standalone.log" 2>&1 &
-
-echo "Standalone broker PID: $!"
-```
-
-**Expected**: Broker starts on `127.0.0.1:6650` (client), `127.0.0.1:50051` (admin).
-
-#### Multi-Broker Cluster (3 brokers)
-
-```bash
-SEED_NODES="0.0.0.0:7650,0.0.0.0:7651,0.0.0.0:7652"
-
-for i in 0 1 2; do
-  broker_port=$((6650 + i))
-  admin_port=$((50051 + i))
-  raft_port=$((7650 + i))
-  prom_port=$((9040 + i))
-  data_dir="$TEST_RUN/data/broker-$i"
-  log_file="$TEST_RUN/logs/broker_${broker_port}.log"
-
-  mkdir -p "$data_dir"
-
-  "$DANUBE_BIN/danube-broker" \
-    --config-file "$TEST_RUN/danube_broker.yml" \
-    --broker-addr "0.0.0.0:$broker_port" \
-    --admin-addr "0.0.0.0:$admin_port" \
-    --raft-addr "0.0.0.0:$raft_port" \
-    --prom-exporter "0.0.0.0:$prom_port" \
-    --data-dir "$data_dir" \
-    --seed-nodes "$SEED_NODES" \
-    > "$log_file" 2>&1 &
-
-  echo "Broker $i started: client=$broker_port admin=$admin_port raft=$raft_port (PID: $!)"
-  sleep 2
-done
-```
-
-**Expected**: Three brokers start, Raft consensus elects a leader within ~10 seconds.
-
-### Step 7: Wait for Readiness
-
-```bash
-echo "Waiting for broker readiness..."
-for attempt in $(seq 1 30); do
-  if "$DANUBE_BIN/danube-admin" cluster status 2>/dev/null; then
-    echo "Cluster is ready!"
-    break
-  fi
-  echo "  Attempt $attempt/30 — waiting 2s..."
-  sleep 2
-done
-```
-
-**Expected**: `danube-admin cluster status` returns cluster membership and leader info.
-
-### Step 8: Verify Cluster Health
-
-```bash
-# Raft cluster state
-"$DANUBE_BIN/danube-admin" cluster status
-
-# List all brokers and their status
-"$DANUBE_BIN/danube-admin" brokers list
-
-# Identify the cluster leader
-"$DANUBE_BIN/danube-admin" brokers leader
-
-# Check load distribution
-"$DANUBE_BIN/danube-admin" brokers balance
-```
-
-**Expected**: All brokers show status `active`, a leader is elected, and load is balanced.
-
-### Step 9: Check Broker Logs
-
-```bash
-# Check logs for errors
-tail -30 "$TEST_RUN/logs/broker_6650.log"
-tail -30 "$TEST_RUN/logs/broker_6651.log"
-tail -30 "$TEST_RUN/logs/broker_6652.log"
-
-# Look for errors across all brokers
-grep -i "error\|panic\|fatal" "$TEST_RUN/logs/"*.log
-```
-
-**Expected**: No errors or panics. Logs show successful Raft leader election and cluster formation.
-
-## Edge Mode
-
-To run an edge broker alongside a cluster broker:
-
-### Step 1: Ensure a cluster broker is running (see above)
-
-### Step 2: Prepare edge config
-
-```bash
-cp configs/edge.yaml "$TEST_RUN/edge.yaml"
-# Set cluster_url to point to the running cluster broker
-# (default is http://127.0.0.1:6650 which works for local setup)
-```
-
-### Step 3: Start edge broker
-
-```bash
-"$DANUBE_BIN/danube-broker" \
-  --mode edge \
-  --data-dir "$TEST_RUN/data/edge" \
-  --edge-config "$TEST_RUN/edge.yaml" \
-  --broker-addr "0.0.0.0:6653" \
-  --admin-addr "0.0.0.0:50054" \
-  --raft-addr "0.0.0.0:7653" \
-  > "$TEST_RUN/logs/edge_broker.log" 2>&1 &
-
-echo "Edge broker PID: $!"
-```
-
-### Step 4: Test MQTT ingestion (requires mosquitto_pub)
-
-```bash
-mosquitto_pub -h 127.0.0.1 -p 1883 \
-  -t "device/sensor-1/telemetry" \
-  -m '{"temperature": 25.5, "device_id": "sensor-1"}'
-```
-
-## Verification
-
-- [ ] Binaries downloaded and executable
-- [ ] `danube-broker --version` outputs version string
+- [ ] Binaries downloaded and executable: `ls -la bin/<version>/danube-*`
 - [ ] Broker process running: `pgrep -la danube-broker`
-- [ ] `danube-admin cluster status` shows leader and voters
 - [ ] `danube-admin brokers list` shows all brokers as `active`
-- [ ] `danube-admin brokers balance` shows balanced load
-- [ ] Broker logs show no errors: `grep -i error "$TEST_RUN/logs/"*.log`
+- [ ] (cluster only) `danube-admin cluster status` shows leader and voters
+- [ ] (cluster only) `danube-admin brokers leader-broker` identifies leader
+- [ ] (cluster only) `danube-admin brokers balance` shows balanced load
+- [ ] Broker logs show no errors: `grep -i "ERROR\|PANIC\|FATAL" "$TEST_RUN/logs/"*.log`
 - [ ] Prometheus metrics accessible: `curl http://localhost:9040/metrics | head`
-
-## Cleanup
-
-```bash
-# Stop all Danube processes
-pkill -f danube-broker
-pkill -f danube-admin
-
-# Verify they stopped
-sleep 2
-pgrep -la danube-broker && echo "WARNING: brokers still running" || echo "All brokers stopped"
-
-# The test-run directory can be deleted if no longer needed:
-# rm -rf "$TEST_RUN"
-```
 
 ## Troubleshooting
 
-- **Binary not found or wrong architecture**: Check `uname -m` and verify the download URL matches. The release page may have different naming conventions (e.g., `gnu` vs `musl`).
+- **Binary not found or wrong architecture**: The script auto-detects OS/arch. If it fails, check `uname -s` and `uname -m` and verify the release page has a matching archive.
 
-- **Permission denied**: Make the binary executable: `chmod +x "$DANUBE_BIN/danube-broker"`
+- **Permission denied**: `chmod +x bin/<version>/danube-*`
 
-- **Port already in use**: Another broker or process is using the port. Check with `ss -lntp | grep <port>` and kill the offending process.
+- **Port already in use**: `ss -lntp | grep <port>`. Kill the conflicting process or run `./scripts/cleanup.sh` first.
 
-- **Raft cluster not forming**: Ensure all seed_nodes addresses are correct and all brokers can reach each other. Check logs: `tail -20 "$TEST_RUN/logs/broker_6650.log"`
+- **Raft cluster not forming**: Check logs: `tail -20 "$TEST_RUN/logs/broker_6650.log"`. Ensure seed_nodes are correct.
 
-- **Standalone mode ignores config file**: In `--mode standalone`, the broker generates its own config. To use a config file, omit `--mode standalone` and use `--config-file` instead.
+- **Standalone mode ignores config file**: By design. `--mode standalone` auto-generates config. To use a custom config, omit `--mode standalone` and use `--config-file` instead.
+
+- **Edge broker: "Unable to find the namespace"**: Create the namespace first: `danube-admin namespaces create <edge_name>`.
+
+- **Edge broker: stale Raft data**: Delete the edge data dir before restarting: `rm -rf $TEST_RUN/data/edge`
+
+- **Edge broker: "schema not resolved"**: Remove `schema_subject` from topic mappings in the edge config, or pre-register the schemas on the cluster first.
