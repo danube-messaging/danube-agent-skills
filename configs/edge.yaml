@@ -1,0 +1,64 @@
+# Danube Edge Broker — Configuration Template
+#
+# This is the edge broker config template for MQTT ingestion scenarios.
+# The edge broker accepts MQTT connections, maps them to Danube topics,
+# and replicates messages to a central Danube cluster.
+#
+# Usage:
+#   1. Copy to your test-run directory: cp configs/edge.yaml $TEST_RUN/configs/edge.yaml
+#   2. Set cluster_url to point to your running cluster broker
+#   3. Customize topic_mappings for your test scenario
+#   4. Start: danube-broker --mode edge --edge-config $TEST_RUN/configs/edge.yaml ...
+
+edge:
+  # Unique name — all Danube topics must be under /{edge_name}/ namespace
+  edge_name: "edge1"
+  # Cluster broker URL for replication (modify this!)
+  cluster_url: "http://127.0.0.1:6650"
+  # Auth token (set if cluster has auth enabled, or use --edge-token CLI flag)
+  token: ""
+  # Heartbeat interval: how often the edge pings the cluster for changes (ms)
+  heartbeat_interval_ms: 30000
+
+replicator:
+  # Batch size before sending to cluster
+  batch_size: 100
+  # Max wait before sending a partial batch (ms)
+  batch_timeout_ms: 1000
+
+mqtt:
+  # MQTT listener address
+  listener: "0.0.0.0:1883"
+
+  # Topic mapping rules (evaluated in order, first match wins)
+  #
+  # MQTT wildcards:
+  #   +  — single-level (one path segment)
+  #   #  — multi-level (remainder of path)
+  #
+  # extract_attributes: maps wildcard captures ($1, $2, ...) to
+  # Danube StreamMessage attributes
+  #
+  # schema_subject: optional schema from the cluster registry for validation
+  topic_mappings:
+    - mqtt_pattern: "device/+/telemetry"
+      danube_topic: "/edge1/telemetry"
+      schema_subject: "telemetry-events"
+      extract_attributes:
+        device_id: "$1"
+
+    - mqtt_pattern: "sensors/+/+"
+      danube_topic: "/edge1/sensors"
+      schema_subject: "sensor-readings"
+      extract_attributes:
+        sensor_type: "$1"
+        measurement: "$2"
+
+    # Catch-all: any unmatched MQTT topic
+    - mqtt_pattern: "#"
+      danube_topic: "/edge1/unrouted"
+
+  # Ingestion batching: messages buffered per-topic before flushing to local WAL
+  ingestion:
+    batch_size: 100
+    batch_timeout_ms: 500

@@ -1,10 +1,13 @@
 
 info/
 
+# Auto-generated test-run directories
+runs/
+
 # Rust
 target/
 
-# Go
+# Shared downloaded Danube binaries (bin/<version>/)
 bin/
 
 # Python

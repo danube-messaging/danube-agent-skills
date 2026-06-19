@@ -1,0 +1,90 @@
+# Danube Broker — Default Standalone Configuration
+#
+# This is the default config template for AI-driven testing.
+# It runs a single broker in standalone mode with no authentication.
+#
+# Usage:
+#   1. Copy to your test-run directory: cp configs/default.yml $TEST_RUN/configs/danube_broker.yml
+#   2. Modify as needed for your scenario
+#   3. Start the broker: danube-broker --config-file $TEST_RUN/configs/danube_broker.yml ...
+#
+# For cluster mode, copy this file and apply the "Cluster" overlay from configs/flavors/SKILL.md.
+# For specialized scenarios, see configs/flavors/SKILL.md for all available overlays.
+
+cluster_name: "MY_CLUSTER"
+
+broker:
+  host: "0.0.0.0"
+  ports:
+    client: 6650
+    admin: 50051
+    raft: 7650
+    prometheus: 9040
+  # advertised_listeners:
+  #   broker_url: "broker-0.danube-broker-headless:6650"
+  #   connect_url: "danube-proxy.example.com:6650"
+
+# Raft metadata store — standalone mode (no seed_nodes)
+meta_store:
+  data_dir: "./danube-data/raft"
+  # For multi-node cluster, uncomment and list all peers:
+  # seed_nodes:
+  #   - "0.0.0.0:7650"
+  #   - "0.0.0.0:7651"
+  #   - "0.0.0.0:7652"
+
+bootstrap_namespaces:
+  - "default"
+
+auto_create_topics: true
+
+# Security: disabled for testing
+auth:
+  mode: none
+  # tls:
+  #   cert_file: "./cert/server-cert.pem"
+  #   key_file: "./cert/server-key.pem"
+  #   ca_file: "./cert/ca-cert.pem"
+  # jwt:
+  #   secret_key: "your-secret-key"
+  #   issuer: "danube-auth"
+  #   expiration_time: 3600
+  # super_admins:
+  #   - "admin"
+
+load_manager:
+  assignment_strategy: "fair"
+  load_report_interval_seconds: 30
+  rebalancing:
+    enabled: false
+    aggressiveness: "balanced"
+    check_interval_seconds: 300
+    max_moves_per_hour: 10
+    cooldown_seconds: 60
+    min_brokers_for_rebalance: 2
+    min_topic_age_seconds: 300
+    blacklist_topics: []
+
+storage:
+  mode: local
+  local_wal_root: "./danube-data/wal"
+  metadata_prefix: "/danube"
+  local_retention:
+    time_minutes: 2880
+    size_mb: 20480
+    check_interval_minutes: 5
+  wal:
+    rotation:
+      max_bytes: 536870912
+
+dispatch:
+  max_unacked_messages: 10
+
+policies:
+  max_producers_per_topic: 0
+  max_subscriptions_per_topic: 0
+  max_consumers_per_topic: 0
+  max_consumers_per_subscription: 0
+  max_publish_rate: 0
+  max_subscription_dispatch_rate: 0
+  max_message_size: 10485760
