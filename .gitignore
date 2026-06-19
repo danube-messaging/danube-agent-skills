@@ -1,0 +1,43 @@
+
+info/
+
+# Rust
+target/
+
+# Go
+bin/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Java
+*.class
+build/
+.gradle/
+
+# Node (if any tooling)
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Danube data directories
+danube-data/
+data*/
+
+# Docker
+.docker/
+
+# Kubernetes
+*.kubeconfig
+
