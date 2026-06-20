@@ -1,3 +1,8 @@
+---
+name: local-binary
+description: "Download pre-built Danube binaries and run brokers on the host. Use for quick testing without Docker or build tools. Supports standalone, cluster, and edge modes."
+---
+
 # Skill: Local Binary Setup
 
 ## Objective

@@ -1,3 +1,8 @@
+---
+name: setups
+description: "Overview of all Danube setup methods. Use when deciding how to run Danube — local binary, local source, Docker Compose, or Kubernetes."
+---
+
 # Skill: Setups — How to Run Danube
 
 ## Objective

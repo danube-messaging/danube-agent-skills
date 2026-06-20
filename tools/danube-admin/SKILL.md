@@ -1,3 +1,8 @@
+---
+name: danube-admin
+description: "Control plane operations with danube-admin. Use for cluster management — broker listing, leader election, rebalancing, namespace management, and cluster status."
+---
+
 # Skill: danube-admin — Control Plane Operations
 
 ## Objective

@@ -1,3 +1,8 @@
+---
+name: kubernetes
+description: "Deploy Danube to Kubernetes using Helm charts. Use when the user wants to test in a Kubernetes-native environment with Kind or a managed cluster (EKS, GKE, AKS)."
+---
+
 # Skill: Kubernetes Setup
 
 ## Objective

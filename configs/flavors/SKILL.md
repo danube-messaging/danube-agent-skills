@@ -1,3 +1,8 @@
+---
+name: flavors
+description: "Configuration overlay reference. Use when you need to modify the default broker config for a specific scenario — cluster seed nodes, rebalancing, cloud storage, write buffer, TLS/JWT security."
+---
+
 # Skill: Configuration Flavors — Overlay Reference
 
 ## Objective

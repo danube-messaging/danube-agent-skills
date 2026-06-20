@@ -1,3 +1,8 @@
+---
+name: danube-agent-skills
+description: "Root router for Danube testing skills. Use this to understand the repository structure, select the right setup method, and navigate to specific skills for configs, setups, tools, clients, and scenarios."
+---
+
 # Skill: Danube Agent Skills — Root Router
 
 ## What Is This Repository?

@@ -1,3 +1,8 @@
+---
+name: clients
+description: "Client library reference for generating test traffic. Use when you need to write producer/consumer code in Go, Python, Rust, or Java."
+---
+
 # Skill: Clients — Test Traffic Generators
 
 ## Objective

@@ -1,3 +1,8 @@
+---
+name: scenarios
+description: "End-to-end test workflow catalog. Use when running a specific test scenario — each scenario defines required setup, config, tools, and pass/fail criteria."
+---
+
 # Skill: Scenarios — End-to-End Test Workflows
 
 ## Objective

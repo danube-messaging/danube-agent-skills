@@ -1,3 +1,8 @@
+---
+name: danube-cli
+description: "Data plane operations with danube-cli. Use for producing messages, consuming messages, and managing topics and subscriptions."
+---
+
 # Skill: danube-cli — Data Plane Operations
 
 ## Objective

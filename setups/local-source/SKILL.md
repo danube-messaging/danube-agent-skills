@@ -1,3 +1,8 @@
+---
+name: local-source
+description: "Build Danube from source and run brokers locally via Makefile. Use when the user is developing on the Danube codebase and wants to test local changes."
+---
+
 # Skill: Local Source Setup
 
 ## Objective

@@ -1,3 +1,8 @@
+---
+name: tools
+description: "Overview of Danube operational tools. Use to understand the difference between danube-cli (data plane) and danube-admin (control plane)."
+---
+
 # Skill: Tools — Operational Tool References
 
 ## Objective

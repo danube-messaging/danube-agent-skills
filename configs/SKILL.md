@@ -1,3 +1,8 @@
+---
+name: configs
+description: "Manage Danube broker configurations. Use when you need to prepare a broker config file, understand when configs are needed (standalone vs cluster vs edge), or apply flavor overlays."
+---
+
 # Skill: Broker Configuration System
 
 ## Objective

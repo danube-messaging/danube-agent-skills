@@ -1,3 +1,8 @@
+---
+name: docker-compose
+description: "Run Danube via Docker Compose with published container images. Use for multi-broker cluster testing with Prometheus, optional Admin UI, or MinIO cloud storage."
+---
+
 # Skill: Docker Compose Setup
 
 ## Objective
