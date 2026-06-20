@@ -411,3 +411,16 @@ Working examples in the danube-java repository at `/examples/`:
 - `ReliableDispatchProducer.java` / `ReliableDispatchConsumer.java` — Reliable delivery
 - `SchemaEvolution.java` — Schema versioning
 - `SchemaRegistryProducerExample.java` — Schema registry API
+
+## Troubleshooting
+
+### "no partitions found" on consumer.subscribe()
+
+The topic **must exist** before calling `consumer.subscribe()`. If the topic doesn't exist, the consumer will fail with `"no partitions found"`. Create the topic first:
+
+```bash
+danube-admin topics create /default/my-topic
+# or with reliable delivery:
+danube-admin topics create /default/my-topic --dispatch-strategy reliable
+```
+

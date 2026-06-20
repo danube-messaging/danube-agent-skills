@@ -375,3 +375,16 @@ Working examples in the danube-go repository at `/examples/`:
 - `key_shared/` — Key-Shared subscription
 - `multi_partitions/` — Partitioned topics
 - `reliable_dispatch/` — Reliable delivery
+
+## Troubleshooting
+
+### "no partitions found" on consumer.Subscribe()
+
+The topic **must exist** before calling `consumer.Subscribe()`. If the topic doesn't exist, the consumer will fail with `"no partitions found"`. Create the topic first:
+
+```bash
+danube-admin topics create /default/my-topic
+# or with reliable delivery:
+danube-admin topics create /default/my-topic --dispatch-strategy reliable
+```
+

@@ -116,14 +116,7 @@ Once the cluster is running, inform the user what they can do:
 
 ## Cleanup
 
-The cluster stays running until the user asks to tear it down. When they do:
-
-```bash
-./scripts/cleanup.sh binary    # Local binary
-./scripts/cleanup.sh source    # Local source
-./scripts/cleanup.sh docker    # Docker Compose
-./scripts/cleanup.sh k8s       # Kubernetes
-```
+See `scenarios/SKILL.md` → **Infrastructure Lifecycle** for cleanup commands. The cluster stays running until the user explicitly asks to tear it down.
 
 ## Config Flavors
 

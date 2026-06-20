@@ -373,3 +373,30 @@ Working examples in the danube-py repository at `/examples/`:
 - `partitions_producer.py` / `partitions_consumer.py` — Partitioned topics
 - `reliable_dispatch_producer.py` / `reliable_dispatch_consumer.py` — Reliable delivery
 - `schema_evolution.py` — Schema versioning
+
+## Troubleshooting
+
+### PEP 668: "externally-managed-environment" error
+
+On modern Linux (Debian 12+, Ubuntu 24+), `pip install` fails with PEP 668 error. Use a virtual environment:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install danube-client
+```
+
+The AI should create/reuse a venv automatically when installing the Python client.
+
+### "no partitions found" on consumer.subscribe()
+
+The topic **must exist** before calling `consumer.subscribe()`. If the topic doesn't exist, the consumer will fail with `"no partitions found"`. Create the topic first:
+
+```bash
+danube-admin topics create /default/my-topic
+# or with reliable delivery:
+danube-admin topics create /default/my-topic --dispatch-strategy reliable
+```
+
+This applies to all client libraries, not just Python.
+

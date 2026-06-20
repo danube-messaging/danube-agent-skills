@@ -20,6 +20,7 @@ Test Danube's core messaging features by producing and consuming messages with t
 
 A running Danube cluster or standalone broker. If not running, use `scenarios/bring-up-cluster/` first.
 
+
 ## AI Decision Flow
 
 Ask the user these questions. Use defaults if the user says "just test it" or "whatever works".
@@ -78,12 +79,15 @@ danube-admin topics create /default/test-topic --dispatch-strategy reliable
 
 ## Execution Steps
 
-### Step 1: Topic Setup (if reliable or schema)
+### Step 1: Create the Topic
 
-If reliable delivery or schema is requested, create the topic explicitly:
+**Always create the topic before starting consumers.** Client library consumers will fail with `"no partitions found"` if the topic doesn't exist. Use `danube-admin`:
 
 ```bash
-# Reliable only
+# Default (non-reliable)
+danube-admin topics create /default/test-topic
+
+# With reliable delivery
 danube-admin topics create /default/test-topic --dispatch-strategy reliable
 
 # Reliable + partitioned
@@ -188,7 +192,7 @@ danube-admin topics subscriptions /default/test-topic
 
 ## Cleanup
 
-This scenario does not tear down the cluster. Topics can be removed if desired:
+This scenario only cleans up topics it created. See `scenarios/SKILL.md` → **Infrastructure Lifecycle** for cluster teardown.
 
 ```bash
 danube-admin topics delete /default/test-topic

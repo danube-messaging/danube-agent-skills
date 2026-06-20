@@ -69,11 +69,12 @@ danube-agent-skills/
 │       └── danube-admin
 │
 └── runs/                       # Auto-generated test directories (git-ignored)
-    └── test_20260619_073955/   # Example: one test run
-        ├── danube_broker.yml   # Generated configs (flat at root)
-        ├── docker-compose.yml
+    └── test_YYYYMMDD_HHMMSS/   # One directory per infra session
+        ├── configs/             # Generated broker configs
         ├── data/               # Broker data (Raft, WAL)
-        └── logs/               # Broker and test logs
+        ├── logs/               # Broker logs
+        └── scenarios/          # Scenario outputs (created by scenario execution)
+            └── core-messaging/ # Scripts and logs from running a scenario
 ```
 
 ## The Five Pillars

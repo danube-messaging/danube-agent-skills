@@ -42,6 +42,40 @@ Scenario (what to test)
 
 The scenario decides everything. Setups and configs are generic building blocks.
 
+## Runs Directory Convention
+
+Scenario outputs (generated scripts, logs) go **inside the active infra run directory**, not in a separate folder:
+
+```text
+runs/test_YYYYMMDD_HHMMSS/          ← created by setup script (infra)
+  ├── configs/                       ← broker configs
+  ├── data/                          ← broker data (Raft, WAL)
+  ├── logs/                          ← broker logs
+  └── scenarios/                     ← created by scenario execution
+      ├── core-messaging/            ← scenario 1 outputs
+      │   ├── producer.py
+      │   ├── consumer.py
+      │   └── output.log
+      └── another-scenario/          ← scenario 2 outputs
+```
+
+The AI should detect the active run directory (most recent `runs/test_*/` or the one the user specified) and create `scenarios/<scenario-name>/` inside it.
+
+This keeps everything scoped to one session — the user can run multiple scenarios against the same infra, and `rm -rf runs/test_YYYYMMDD_HHMMSS/` cleans up everything.
+
+## Infrastructure Lifecycle
+
+**Scenarios never tear down infrastructure automatically.** The user may want to run additional scenarios on the same cluster. Scenarios only clean up their own resources (e.g., topics they created).
+
+The user decides when to tear down. When they do:
+
+```bash
+./scripts/cleanup.sh binary    # Local binary
+./scripts/cleanup.sh source    # Local source
+./scripts/cleanup.sh docker    # Docker Compose
+./scripts/cleanup.sh k8s       # Kubernetes
+```
+
 ## Maybe (Future Ideas)
 
 These scenarios are ideas for future implementation. They are not yet built.

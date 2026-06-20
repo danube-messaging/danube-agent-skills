@@ -401,3 +401,16 @@ Working examples in the Danube source repository at `/danube-client/examples/`:
 - `partitions_producer.rs` / `partitions_consumer.rs` — Partitioned topics
 - `reliable_dispatch_producer.rs` / `reliable_dispatch_consumer.rs` — Reliable delivery
 - `schema_evolution.rs` — Schema versioning
+
+## Troubleshooting
+
+### "no partitions found" on consumer.subscribe()
+
+The topic **must exist** before calling `consumer.subscribe()`. If the topic doesn't exist, the consumer will fail with `"no partitions found"`. Create the topic first:
+
+```bash
+danube-admin topics create /default/my-topic
+# or with reliable delivery:
+danube-admin topics create /default/my-topic --dispatch-strategy reliable
+```
+
