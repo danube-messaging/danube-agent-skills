@@ -49,10 +49,18 @@ danube-agent-skills/
 │       └── SKILL.md
 │
 ├── clients/                    # Client libraries for test traffic
-│   └── SKILL.md                # Overview & language matrix
+│   ├── SKILL.md                # Overview & language selection
+│   ├── rust/SKILL.md           # Rust client (danube-client)
+│   ├── python/SKILL.md         # Python client (danube-client)
+│   ├── go/SKILL.md             # Go client (danube-go)
+│   └── java/SKILL.md           # Java client (danube-client)
 │
 ├── scenarios/                  # End-to-end test workflows
-│   └── SKILL.md                # Scenario catalog
+│   ├── SKILL.md                # Scenario catalog
+│   ├── bring-up-cluster/       # Get a running Danube
+│   │   └── SKILL.md
+│   └── core-messaging/         # Test subscriptions, schemas, reliability
+│       └── SKILL.md
 │
 ├── bin/                        # Shared downloaded binaries (git-ignored)
 │   └── v0.15.0/                # One subdirectory per release version
@@ -237,11 +245,12 @@ Additional services:
 
 ## Quick Start: What to Read for Common Tasks
 
-| User Goal | Read These Skills |
-|-----------|------------------|
-| "I want to try Danube" | `./scripts/setup_docker_compose.sh quickstart` |
-| "Run a quick test" | `./scripts/setup_local_binary.sh standalone v0.15.0` |
-| "Test broker scaling" | `configs/flavors/SKILL.md` (Cluster + Rebalance) → `setups/docker-compose/SKILL.md` → `scenarios/broker-scaling/SKILL.md` |
-| "I'm developing Danube" | `./scripts/setup_local_source.sh /path/to/danube` |
-| "Deploy to Kubernetes" | `configs/SKILL.md` → `setups/kubernetes/SKILL.md` |
-| "Test Edge/MQTT" | `configs/edge.yaml` → `setups/local-binary/SKILL.md` (edge mode) |
+| User Goal | Scenario / Command |
+|-----------|-------------------|
+| "I want to try Danube" | `scenarios/bring-up-cluster/` → AI picks setup method |
+| "Run a quick test" | `scenarios/bring-up-cluster/` → standalone binary |
+| "Test subscriptions" | `scenarios/core-messaging/` → AI asks which type |
+| "Send messages with schema" | `scenarios/core-messaging/` → schema=yes |
+| "Write a Python producer" | `scenarios/core-messaging/` → Python client |
+| "I'm developing Danube" | `scenarios/bring-up-cluster/` → local source setup |
+| "Deploy to Kubernetes" | `scenarios/bring-up-cluster/` → kubernetes setup |

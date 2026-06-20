@@ -9,46 +9,37 @@ description: "Overview of Danube operational tools. Use to understand the differ
 
 Teach the AI how to use `danube-cli` (data plane) and `danube-admin` (control plane) as instruments for testing Danube broker functionality.
 
-## Status
-🚧 **Coming soon** — This pillar is under construction.
-
 ## Tool Overview
 
 | Tool | Scope | When to Use |
 |------|-------|-------------|
 | **danube-cli** | Data plane: produce, consume, schemas | Every scenario — generating and reading test traffic |
-| **danube-admin** | Control plane: cluster, brokers, topics, RBAC, MCP | Multi-broker scenarios — managing cluster state |
+| **danube-admin** | Control plane: cluster, brokers, topics, RBAC | Multi-broker scenarios — managing cluster state |
 
 ## Sub-Skills
 
 - `tools/danube-cli/SKILL.md` — Produce, consume, schema operations
-- `tools/danube-admin/SKILL.md` — Cluster, broker, topic, security management
+- `tools/danube-admin/SKILL.md` — Cluster, broker, topic, namespace, schema, security management
 
-## Quick Reference
+## Quick Decision
 
-### danube-cli (data plane)
+| User Goal | Tool |
+|-----------|------|
+| Send and receive messages | `danube-cli` |
+| Register or check schemas | `danube-cli` (register/get/check) or `danube-admin` (set compatibility, delete, configure topic schema) |
+| Create topics with specific dispatch strategy | `danube-admin topics create` |
+| Check cluster health | `danube-admin cluster status` + `danube-admin brokers list` |
+| Manage namespaces | `danube-admin namespaces` |
+| Scale brokers up/down | `danube-admin cluster add-node/remove-node` |
+
+## Installation
+
+Both tools are downloaded as part of the setup scripts (`scripts/setup_local_binary.sh` downloads them to `bin/<version>/`). They can also be installed manually:
+
 ```bash
-# Produce
-danube-cli produce -s http://127.0.0.1:6650 -t /default/topic -c 10 -m "Hello"
-
-# Consume
-danube-cli consume -s http://127.0.0.1:6650 -t /default/topic -m my-subscription
-
-# Produce with reliable delivery
-danube-cli produce -s http://127.0.0.1:6650 -t /default/topic -c 10 -m "Hello" --reliable
-```
-
-### danube-admin (control plane)
-```bash
-# Cluster status
-danube-admin cluster status
-
-# List brokers
-danube-admin brokers list
-
-# Check balance
-danube-admin brokers balance
-
-# Create topic
-danube-admin topics create /default/my-topic
+# Linux
+curl -L -o danube-cli https://github.com/danube-messaging/danube/releases/latest/download/danube-cli-linux
+curl -L -o danube-admin https://github.com/danube-messaging/danube/releases/latest/download/danube-admin-linux
+chmod +x danube-cli danube-admin
+sudo mv danube-cli danube-admin /usr/local/bin/
 ```
