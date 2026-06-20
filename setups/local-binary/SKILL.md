@@ -9,9 +9,6 @@ description: "Download pre-built Danube binaries and run brokers on the host. Us
 
 Download pre-built Danube binaries from GitHub releases and run brokers directly on the host machine. The simplest setup — no Docker, no build tools, just download and run.
 
-## Difficulty
-Beginner
-
 ## Required Setup
 None — this IS the setup.
 
@@ -104,16 +101,43 @@ The script `cd`s into the test run directory before starting brokers. This ensur
 - Readiness checks should use `danube-admin brokers list` — it works in all modes (standalone, cluster, edge).
 - `danube-admin cluster status`, `brokers leader-broker`, and `brokers balance` only work in cluster mode.
 
-## Verification Checklist
+## Verification
 
-- [ ] Binaries downloaded and executable: `ls -la bin/<version>/danube-*`
-- [ ] Broker process running: `pgrep -la danube-broker`
-- [ ] `danube-admin brokers list` shows all brokers as `active`
-- [ ] (cluster only) `danube-admin cluster status` shows leader and voters
-- [ ] (cluster only) `danube-admin brokers leader-broker` identifies leader
-- [ ] (cluster only) `danube-admin brokers balance` shows balanced load
-- [ ] Broker logs show no errors: `grep -i "ERROR\|PANIC\|FATAL" "$TEST_RUN/logs/"*.log`
-- [ ] Prometheus metrics accessible: `curl http://localhost:9040/metrics | head`
+The setup scripts (`scripts/setup_local_binary.sh`) run these checks automatically. The expected output is documented here so the AI can confirm the setup is healthy.
+
+### `danube-admin brokers list`
+
+All brokers must show status `active`. In cluster mode, one broker has role `Cluster_Leader`, the rest are `Cluster_Follower`.
+
+```text
+BROKER ID       STATUS   ADDRESS              ROLE              ADMIN ADDR
+---------------------------------------------------------------------------
+5804156356...   active   http://0.0.0.0:6650  Cluster_Leader    http://0.0.0.0:50051
+9393761688...   active   http://0.0.0.0:6651  Cluster_Follower  http://0.0.0.0:50052
+1293191161...   active   http://0.0.0.0:6652  Cluster_Follower  http://0.0.0.0:50053
+```
+
+In standalone mode, one broker appears with role `None`.
+
+### `danube-admin cluster status` (cluster mode only)
+
+The `Leader` field must show a valid node ID (not `none`). All broker node IDs should appear in the `Voters` list.
+
+```text
+Raft Cluster Status:
+  Self Node ID:  5804156356532636512
+  Raft Address:  0.0.0.0:7650
+  Leader:        5804156356532636512
+  Term:          1
+  Last Applied:  18
+  Voters:        [5804156356532636512, 9393761688591103413, 12931911617355319510]
+```
+
+**Fail indicators:**
+- Any broker with status other than `active`
+- `Leader: none` in cluster status (no leader elected)
+- Fewer voters than expected brokers
+- `ERROR`, `PANIC`, or `FATAL` in broker logs: `grep -i "ERROR\|PANIC\|FATAL" "$TEST_RUN/logs/"*.log`
 
 ## Troubleshooting
 

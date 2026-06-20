@@ -9,9 +9,6 @@ description: "Run Danube via Docker Compose with published container images. Use
 
 Run Danube via Docker Compose using published container images. This is the recommended setup for most testing scenarios — it provides a multi-broker cluster with Prometheus, CLI, and optional services (MinIO, Admin UI) with a single command.
 
-## Difficulty
-Beginner
-
 ## Required Setup
 None — this IS the setup.
 
@@ -102,14 +99,42 @@ docker logs danube-broker1 --tail 50
 docker compose logs 2>&1 | grep -i "ERROR\|PANIC\|FATAL"
 ```
 
-## Verification Checklist
+## Verification
 
-- [ ] `docker compose ps` shows all services running
-- [ ] All broker healthchecks pass (status: "healthy")
-- [ ] `danube-admin --endpoint http://127.0.0.1:50051 cluster status` shows leader and voters
-- [ ] `danube-admin --endpoint http://127.0.0.1:50051 brokers list` shows all brokers as `active`
-- [ ] Broker logs show no errors
-- [ ] Prometheus accessible: `curl http://localhost:9090/-/healthy`
+The setup script (`scripts/setup_docker_compose.sh`) runs these checks automatically. The expected output is documented here so the AI can confirm the setup is healthy.
+
+### `danube-admin --endpoint http://127.0.0.1:50051 brokers list`
+
+All brokers must show status `active`. One broker has role `Cluster_Leader`, the rest are `Cluster_Follower`.
+
+```text
+BROKER ID       STATUS   ADDRESS              ROLE              ADMIN ADDR
+---------------------------------------------------------------------------
+5804156356...   active   http://0.0.0.0:6650  Cluster_Leader    http://0.0.0.0:50051
+9393761688...   active   http://0.0.0.0:6651  Cluster_Follower  http://0.0.0.0:50052
+1293191161...   active   http://0.0.0.0:6652  Cluster_Follower  http://0.0.0.0:50053
+```
+
+### `danube-admin --endpoint http://127.0.0.1:50051 cluster status`
+
+The `Leader` field must show a valid node ID (not `none`). All broker node IDs should appear in the `Voters` list.
+
+```text
+Raft Cluster Status:
+  Self Node ID:  5804156356532636512
+  Raft Address:  0.0.0.0:7650
+  Leader:        5804156356532636512
+  Term:          1
+  Last Applied:  18
+  Voters:        [5804156356532636512, 9393761688591103413, 12931911617355319510]
+```
+
+**Fail indicators:**
+- Any broker with status other than `active`
+- `Leader: none` in cluster status (no leader elected)
+- Fewer voters than expected brokers
+- `docker compose ps` shows containers not in "running" state
+- `ERROR`, `PANIC`, or `FATAL` in container logs: `docker compose logs 2>&1 | grep -i "ERROR\|PANIC\|FATAL"`
 
 ## Cleanup
 

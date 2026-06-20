@@ -9,9 +9,6 @@ description: "Build Danube from source and run brokers locally via Makefile. Use
 
 Build Danube from the source repository and run brokers locally. This setup is for users who are developing on the Danube codebase and want to test their local changes.
 
-## Difficulty
-Intermediate
-
 ## Required Setup
 None — this IS the setup.
 
@@ -81,13 +78,41 @@ After `make brokers`, binaries are at `$DANUBE_REPO/target/release/danube-broker
 | `BASE_RAFT_PORT` | `7650` | Starting port for Raft transport |
 | `BASE_PROM_PORT` | `9040` | Starting port for Prometheus metrics |
 
-## Verification Checklist
+## Verification
 
-- [ ] `cargo build --release` completes successfully
-- [ ] `make cluster-status` shows all brokers and a leader
-- [ ] `danube-admin brokers list` shows all brokers as `active`
-- [ ] `danube-admin brokers balance` shows balanced load
-- [ ] Broker logs show no errors: `grep -i "ERROR\|PANIC\|FATAL" temp/broker_*.log`
+The setup script (`scripts/setup_local_source.sh`) runs these checks automatically. The expected output is documented here so the AI can confirm the setup is healthy.
+
+### `./target/release/danube-admin brokers list`
+
+All brokers must show status `active`. One broker has role `Cluster_Leader`, the rest are `Cluster_Follower`.
+
+```text
+BROKER ID       STATUS   ADDRESS              ROLE              ADMIN ADDR
+---------------------------------------------------------------------------
+5804156356...   active   http://0.0.0.0:6650  Cluster_Leader    http://0.0.0.0:50051
+9393761688...   active   http://0.0.0.0:6651  Cluster_Follower  http://0.0.0.0:50052
+1293191161...   active   http://0.0.0.0:6652  Cluster_Follower  http://0.0.0.0:50053
+```
+
+### `./target/release/danube-admin cluster status`
+
+The `Leader` field must show a valid node ID (not `none`). All broker node IDs should appear in the `Voters` list.
+
+```text
+Raft Cluster Status:
+  Self Node ID:  5804156356532636512
+  Raft Address:  0.0.0.0:7650
+  Leader:        5804156356532636512
+  Term:          1
+  Last Applied:  18
+  Voters:        [5804156356532636512, 9393761688591103413, 12931911617355319510]
+```
+
+**Fail indicators:**
+- Any broker with status other than `active`
+- `Leader: none` in cluster status (no leader elected)
+- Fewer voters than expected brokers
+- `ERROR`, `PANIC`, or `FATAL` in broker logs: `grep -i "ERROR\|PANIC\|FATAL" temp/broker_*.log`
 
 ## Troubleshooting
 

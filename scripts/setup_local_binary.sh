@@ -208,14 +208,6 @@ if [[ "$MODE" == "cluster" ]]; then
   echo ""
   echo "── cluster status ──"
   "$DANUBE_BIN/danube-admin" cluster status || true
-
-  echo ""
-  echo "── leader broker ──"
-  "$DANUBE_BIN/danube-admin" brokers leader-broker || true
-
-  echo ""
-  echo "── cluster balance ──"
-  "$DANUBE_BIN/danube-admin" brokers balance || true
 fi
 
 echo ""

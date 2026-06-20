@@ -9,9 +9,6 @@ description: "Deploy Danube to Kubernetes using Helm charts. Use when the user w
 
 Deploy Danube to a Kubernetes cluster using Helm charts. This setup is for users who want to test Danube in a Kubernetes-native environment, either locally with Kind or on a managed cluster (EKS, GKE, AKS).
 
-## Difficulty
-Advanced
-
 ## Required Setup
 None — this IS the setup.
 

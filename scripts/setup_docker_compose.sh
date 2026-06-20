@@ -153,10 +153,6 @@ if [[ -n "$DANUBE_ADMIN" && -x "$DANUBE_ADMIN" ]]; then
   echo ""
   echo "── cluster status ──"
   "$DANUBE_ADMIN" --endpoint http://127.0.0.1:50051 cluster status || true
-
-  echo ""
-  echo "── leader broker ──"
-  "$DANUBE_ADMIN" --endpoint http://127.0.0.1:50051 brokers leader-broker || true
 else
   echo "  ⚠ danube-admin not available — skipping cluster verification"
   echo "  Download it with: ./scripts/setup_local_binary.sh standalone <version>"

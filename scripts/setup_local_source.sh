@@ -94,14 +94,6 @@ echo ""
 echo "── cluster status ──"
 ./target/release/danube-admin cluster status || true
 
-echo ""
-echo "── leader broker ──"
-./target/release/danube-admin brokers leader-broker || true
-
-echo ""
-echo "── cluster balance ──"
-./target/release/danube-admin brokers balance || true
-
 # ── Step 6: Check logs for errors ───────────────────────────────────────────
 echo ""
 echo "▸ Step 6: Scanning logs for errors..."
