@@ -91,14 +91,17 @@ Each setup method injects broker configs differently:
 | **Docker Compose** | Volume mount: `$TEST_RUN/danube_broker.yml:/etc/danube_broker.yml:ro` |
 | **Kubernetes** | ConfigMap: `kubectl create configmap danube-broker-config --from-file=danube_broker.yml` |
 
-## Cleanup Priority
+## Cleanup
 
-Always clean up in this order:
-1. Stop producers and consumers
-2. Stop/delete brokers
-3. Remove data directories or volumes
-4. Remove Docker networks or K8s namespaces
-5. Verify no orphaned processes or containers remain
+Each setup has a dedicated cleanup command via `scripts/cleanup.sh`:
+
+```bash
+./scripts/cleanup.sh binary    # Stop local binary broker processes
+./scripts/cleanup.sh source    # Stop source-built broker processes
+./scripts/cleanup.sh docker    # Stop Docker Compose services and containers
+./scripts/cleanup.sh k8s       # Remove Kubernetes deployment (Helm + namespace)
+./scripts/cleanup.sh all       # All of the above + remove test-run directories
+```
 
 ## Troubleshooting (Common Across Methods)
 

@@ -15,7 +15,7 @@ Before running the setup script, the AI must confirm these prerequisites:
 
 1. **Verify `curl` or `wget` is installed:** required to download binaries from GitHub releases.
 2. **Verify `tar` is installed:** required to extract the downloaded archives.
-3. **Check for port conflicts:** `ss -lntp | grep -E '(6650|6651|6652|50051|50052|50053)'`. If ports are in use, run `./scripts/cleanup.sh` first.
+3. **Check for port conflicts:** `ss -lntp | grep -E '(6650|6651|6652|50051|50052|50053)'`. If ports are in use, run `./scripts/cleanup.sh binary` first.
 
 ## How to Run
 
@@ -28,8 +28,8 @@ Once prerequisites are confirmed, run the setup script:
 # 3-broker cluster
 ./scripts/setup_local_binary.sh cluster v0.15.0 3
 
-# Cleanup everything
-./scripts/cleanup.sh
+# Cleanup
+./scripts/cleanup.sh binary
 ```
 
 The script is at `scripts/setup_local_binary.sh` — read it for the full implementation details.
@@ -146,7 +146,7 @@ Raft Cluster Status:
 
 - **Permission denied**: `chmod +x bin/<version>/danube-*`
 
-- **Port already in use**: `ss -lntp | grep <port>`. Kill the conflicting process or run `./scripts/cleanup.sh` first.
+- **Port already in use**: `ss -lntp | grep <port>`. Kill the conflicting process or run `./scripts/cleanup.sh binary` first.
 
 - **Raft cluster not forming**: Check logs: `tail -20 "$TEST_RUN/logs/broker_6650.log"`. Ensure seed_nodes are correct.
 

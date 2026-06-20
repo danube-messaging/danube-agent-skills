@@ -26,7 +26,7 @@ Once prerequisites are confirmed, run the setup script with the user-provided re
 ./scripts/setup_local_source.sh /path/to/danube 3
 
 # Cleanup
-cd /path/to/danube && make brokers-clean
+./scripts/cleanup.sh source
 ```
 
 The script is at `scripts/setup_local_source.sh` — read it for the full implementation details.

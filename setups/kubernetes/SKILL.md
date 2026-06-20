@@ -7,36 +7,29 @@ description: "Deploy Danube to Kubernetes using Helm charts. Use when the user w
 
 ## Objective
 
-Deploy Danube to a Kubernetes cluster using Helm charts. This setup is for users who want to test Danube in a Kubernetes-native environment, either locally with Kind or on a managed cluster (EKS, GKE, AKS).
+Deploy Danube to a Kubernetes cluster using Helm charts. This skill deploys Danube into an **existing** Kubernetes cluster — it does not create the cluster itself.
 
-## Required Setup
-None — this IS the setup.
+## Prerequisites (verify before running)
 
-## Required Tools
-- `kubectl` — Kubernetes CLI
-- `helm` 3.0+ — Helm package manager
-- A Kubernetes cluster (Kind for local, or existing EKS/GKE/AKS)
-- `docker` — Required for Kind clusters
-- `danube-cli` — For testing (local binary or from test-run binaries)
+Before running the setup script, the AI must confirm these prerequisites:
 
-## Prerequisites Check
+1. **Verify `kubectl` is installed and connected to a cluster:** `kubectl version` must show both Client and Server versions. The user is responsible for providing a running Kubernetes cluster (Kind, EKS, GKE, AKS, etc.).
+2. **Verify `helm` 3.0+ is installed:** `helm version` must succeed.
+3. **Check for existing Danube namespace:** `kubectl get namespace danube 2>/dev/null`. If it exists, the user may want to clean up first.
+
+## How to Run
+
+Once prerequisites are confirmed, run the setup script:
 
 ```bash
-# Check kubectl
-which kubectl && kubectl version --client
+# Deploy Danube to Kubernetes (3 brokers + Envoy proxy + Prometheus)
+./scripts/setup_kubernetes.sh
 
-# Check Helm
-which helm && helm version
-
-# Check Docker (for Kind)
-which docker && docker --version
-
-# Check for existing Danube namespace
-kubectl get namespace danube 2>/dev/null && echo "Danube namespace exists" || echo "No danube namespace"
-
-# Check Kind (if using local cluster)
-which kind && kind version
+# Cleanup
+./scripts/cleanup.sh k8s
 ```
+
+The script is at `scripts/setup_kubernetes.sh` — read it for the full implementation details.
 
 ## Architecture
 
@@ -51,121 +44,45 @@ The proxy is installed first because brokers need its address for the `connectUr
 
 **Traffic flow**: Client → Envoy Proxy → Broker (topic owner)
 
-## Steps
+## Key Concepts
 
-### Step 1: Create the Test-Run Directory
+### `externalAccess.enabled=true` Is Required
 
+**This is critical.** The Helm install must include `--set broker.externalAccess.enabled=true`. Without it:
+- Brokers don't pass `--advertised-addr` to the container
+- The broker's `broker_url` stays `http://0.0.0.0:6650`
+- The Raft node can't derive an advertised Raft address from `0.0.0.0`
+- Seed peer discovery fails silently — each broker waits forever for manual `danube-admin cluster add-node`
+- The cluster **never forms** even though all pods show `Running/Ready`
+
+### Helm Chart Source
+Charts are published at `https://danube-messaging.github.io/danube_helm`.
+
+### Seed Nodes Are Automatic
+The Helm chart generates `--seed-nodes` from StatefulSet DNS names (e.g., `danube-core-broker-0.danube-core-broker-headless.danube.svc.cluster.local:7650`). No manual seed_nodes config is needed. The `configs/default.yml` has `seed_nodes` commented out — **do not uncomment them** for Kubernetes, the Helm chart handles this via CLI args.
+
+### ConfigMap for Broker Config
+The chart expects a ConfigMap named `danube-broker-config` containing `danube_broker.yml`. The setup script creates this from `configs/default.yml`. Do not add `seed_nodes` to this ConfigMap — the Helm chart passes them as CLI arguments.
+
+### Admin Access via Port-Forward
+Since brokers run inside the cluster, admin commands require port-forwarding:
 ```bash
-TEST_RUN="runs/test_$(date +%Y%m%d_%H%M%S)"
-mkdir -p "$TEST_RUN"/{data,logs}
-echo "Test run directory: $TEST_RUN"
+kubectl port-forward danube-core-broker-0 50051:50051 -n danube &
+danube-admin brokers list
 ```
 
-### Step 2: Create a Kubernetes Cluster (skip if you have one)
+### Image Version
+The chart's `appVersion` in `Chart.yaml` controls which broker image tag is used. Override with `--set broker.image.tag=<version>` if needed.
 
-#### Using Kind (local)
+## Verification
 
-```bash
-kind create cluster --name danube-test
-kubectl cluster-info --context kind-danube-test
-```
+The setup script (`scripts/setup_kubernetes.sh`) runs these checks automatically. The expected output is documented here so the AI can confirm the setup is healthy.
 
-**Expected**: Kind cluster created, kubectl context set.
+### `kubectl get pods -n danube`
 
-#### Using an Existing Cluster
+All pods must be in `Running` status with `1/1` ready:
 
-```bash
-# Verify access
-kubectl cluster-info
-kubectl get nodes
-```
-
-### Step 3: Add the Danube Helm Repository
-
-```bash
-helm repo add danube https://danube-messaging.github.io/danube_helm
-helm repo update
-```
-
-**Expected**: `"danube" has been added to your repositories`
-
-Verify available charts:
-```bash
-helm search repo danube
-```
-
-### Step 4: Create the Danube Namespace
-
-```bash
-kubectl create namespace danube
-```
-
-### Step 5: Install the Envoy Proxy
-
-```bash
-helm install danube-envoy danube/danube-envoy -n danube
-```
-
-Wait for the proxy pod to be ready:
-```bash
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=danube-envoy -n danube --timeout=120s
-```
-
-### Step 6: Discover the Proxy Address
-
-```bash
-PROXY_PORT=$(kubectl get svc danube-envoy -n danube \
-  -o jsonpath='{.spec.ports[?(@.name=="grpc")].nodePort}')
-NODE_IP=$(kubectl get nodes \
-  -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
-
-echo "Proxy address: ${NODE_IP}:${PROXY_PORT}"
-
-# Save for later use
-echo "${NODE_IP}:${PROXY_PORT}" > "$TEST_RUN/proxy_address.txt"
-```
-
-> **For managed K8s (EKS, GKE, AKS)**: Change the service type to `LoadBalancer` in the danube-envoy Helm values and use the external IP instead of NodePort.
-
-### Step 7: Prepare Broker Configuration
-
-```bash
-# Copy the default config
-cp configs/default.yml "$TEST_RUN/danube_broker.yml"
-
-# For specific scenarios, apply overlays from configs/flavors/SKILL.md
-# (e.g., Rebalance flavor for broker-scaling tests)
-```
-
-> **Note**: For Kubernetes, seed_nodes are handled by the Helm chart via StatefulSet DNS names. You typically don't need to set them manually in the config.
-
-### Step 8: Create the ConfigMap
-
-```bash
-kubectl create configmap danube-broker-config \
-  --from-file=danube_broker.yml="$TEST_RUN/danube_broker.yml" \
-  -n danube
-```
-
-### Step 9: Install Danube Core
-
-```bash
-helm install danube-core danube/danube-core -n danube \
-  --set broker.externalAccess.connectUrl="${NODE_IP}:${PROXY_PORT}"
-```
-
-Wait for all pods to be ready:
-```bash
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=danube-core -n danube --timeout=300s
-```
-
-Monitor pod startup:
-```bash
-kubectl get pods -n danube -w
-```
-
-**Expected**:
-```
+```text
 NAME                                      READY   STATUS    AGE
 danube-core-broker-0                      1/1     Running   2m
 danube-core-broker-1                      1/1     Running   2m
@@ -174,142 +91,49 @@ danube-core-prometheus-xxxxxxxxx          1/1     Running   3m
 danube-envoy-xxxxxxxxx                    1/1     Running   5m
 ```
 
-### Step 10: Verify Deployment
+### `danube-admin brokers list` (via port-forward)
 
-```bash
-# Check broker registration
-kubectl logs danube-core-broker-0 -n danube | grep "broker registered"
+All brokers must show status `active`. One broker has role `Cluster_Leader`, the rest are `Cluster_Follower`.
 
-# Port-forward admin API for cluster status
-kubectl port-forward danube-core-broker-0 50051:50051 -n danube &
-PF_PID=$!
-sleep 2
-
-# Check cluster status
-danube-admin cluster status
-danube-admin brokers list
-
-kill $PF_PID
+```text
+BROKER ID       STATUS   ADDRESS                                                              ROLE
+---------------------------------------------------------------------------
+5804156356...   active   http://danube-core-broker-0.danube-core-broker-headless...:6650       Cluster_Leader
+9393761688...   active   http://danube-core-broker-1.danube-core-broker-headless...:6650       Cluster_Follower
+1293191161...   active   http://danube-core-broker-2.danube-core-broker-headless...:6650       Cluster_Follower
 ```
 
-### Step 11: Verify Cluster Health
+### `danube-admin cluster status` (via port-forward)
 
-```bash
-# Port-forward admin API (if not already running)
-kubectl port-forward danube-core-broker-0 50051:50051 -n danube &
-PF_PID=$!
-sleep 2
-
-# Raft cluster state
-danube-admin cluster status
-
-# List all brokers and their status
-danube-admin brokers list
-
-# Identify the cluster leader
-danube-admin brokers leader-broker
-
-# Check load distribution
-danube-admin brokers balance
-
-kill $PF_PID
+```text
+Raft Cluster Status:
+  Leader:        5804156356532636512
+  Term:          1
+  Voters:        [5804156356532636512, 9393761688591103413, 12931911617355319510]
 ```
 
-**Expected**: All brokers show status `active`, a leader is elected, and load is balanced.
-
-### Step 12: Check Pod Logs
-
-```bash
-# Check each broker's logs
-for i in 0 1 2; do
-  echo "=== Broker $i ==="
-  kubectl logs danube-core-broker-$i -n danube --tail 30
-done
-
-# Check for errors across all brokers
-for i in 0 1 2; do
-  kubectl logs danube-core-broker-$i -n danube 2>&1 | grep -i "error\|panic\|fatal"
-done
-```
-
-**Expected**: No errors or panics. Logs show successful Raft leader election and cluster formation.
-
-## Inspecting the Cluster
-
-### Admin Access (via port-forward)
-
-```bash
-kubectl port-forward danube-core-broker-0 50051:50051 -n danube &
-
-# Cluster operations
-danube-admin cluster status
-danube-admin brokers list
-danube-admin brokers balance
-```
-
-### Prometheus Access
-
-```bash
-kubectl port-forward svc/danube-core-prometheus 9090:9090 -n danube &
-# Open http://localhost:9090 in browser
-```
-
-### Pod Logs
-
-```bash
-# Specific broker
-kubectl logs danube-core-broker-0 -n danube --tail 50
-
-# Follow logs
-kubectl logs -f danube-core-broker-0 -n danube
-
-# All brokers
-for i in 0 1 2; do
-  echo "=== Broker $i ==="
-  kubectl logs danube-core-broker-$i -n danube --tail 10
-done
-```
-
-## Verification
-
-- [ ] All pods running: `kubectl get pods -n danube` shows 5 pods Running/Ready
-- [ ] Envoy proxy has an address: NodePort or LoadBalancer IP
-- [ ] `danube-admin cluster status` shows leader and voters (via port-forward)
-- [ ] `danube-admin brokers list` shows all brokers as `active`
-- [ ] `danube-admin brokers balance` shows balanced load
-- [ ] Pod logs show no errors: `kubectl logs danube-core-broker-0 -n danube | grep -i error`
-- [ ] Prometheus accessible via port-forward
+**Fail indicators:**
+- Pods not in `Running` state or `0/1` ready
+- `Leader: none` in cluster status
+- Fewer voters than expected brokers
+- `ERROR`, `PANIC`, or `FATAL` in pod logs
 
 ## Cleanup
 
 ```bash
-# Remove Helm releases
-helm uninstall danube-core -n danube
-helm uninstall danube-envoy -n danube
-
-# Delete namespace (removes all resources including PVCs)
-kubectl delete namespace danube
-
-# Delete Kind cluster (if created for this test)
-kind delete cluster --name danube-test
-
-# Kill any port-forward processes
-pkill -f "kubectl port-forward"
-
-# Clean up test-run directory
-# rm -rf "$TEST_RUN"
+./scripts/cleanup.sh k8s
 ```
 
 ## Troubleshooting
 
-- **Pods stuck in Pending**: Check if PersistentVolumeClaims are bound: `kubectl get pvc -n danube`. Kind clusters need a default StorageClass (usually provided automatically).
+- **Pods stuck in Pending**: Check PersistentVolumeClaims: `kubectl get pvc -n danube`. Kind clusters need a default StorageClass (usually provided automatically).
 
-- **Pods in CrashLoopBackOff**: Check pod logs: `kubectl logs danube-core-broker-0 -n danube`. Common causes: invalid config, wrong connectUrl, image pull errors.
+- **Pods in CrashLoopBackOff**: Check pod logs: `kubectl logs danube-core-broker-0 -n danube`. Common causes: invalid config, image pull errors.
 
-- **Envoy proxy not routing**: Verify the connectUrl matches the proxy service address. Check envoy logs: `kubectl logs -l app.kubernetes.io/name=danube-envoy -n danube`.
-
-- **Can't connect from host**: For Kind, ensure port mappings are configured or use port-forward. For managed K8s, check security groups and firewall rules.
+- **Envoy proxy not routing**: Check envoy logs: `kubectl logs -l app.kubernetes.io/name=danube-envoy -n danube`.
 
 - **Helm chart not found**: Run `helm repo update` and verify: `helm search repo danube`.
 
-- **Image pull errors**: Check if you can pull the image: `docker pull ghcr.io/danube-messaging/danube-broker:latest`. Ensure your cluster has access to GitHub Container Registry.
+- **Image pull errors**: `docker pull ghcr.io/danube-messaging/danube-broker:latest`. Ensure cluster has access to GitHub Container Registry.
+
+- **Port-forward already running**: `pkill -f "kubectl port-forward"` before retrying.

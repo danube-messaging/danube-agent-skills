@@ -16,7 +16,7 @@ Before running the setup script, the AI must confirm these prerequisites:
 1. **Verify Docker is installed and running:** `docker info` must succeed. Requires Docker Engine 20.10+.
 2. **Verify Docker Compose V2 is installed:** `docker compose version` must succeed. Use `docker compose` (space), not `docker-compose` (hyphen).
 3. **Verify `wget` is installed:** required to download compose files from GitHub.
-4. **Check for port conflicts:** `ss -lntp | grep -E '(6650|6651|6652|50051|50052|50053)'`. If ports are in use, run `./scripts/cleanup.sh` first.
+4. **Check for port conflicts:** `ss -lntp | grep -E '(6650|6651|6652|50051|50052|50053)'`. If ports are in use, run `./scripts/cleanup.sh docker` first.
 
 ## How to Run
 
@@ -33,9 +33,7 @@ Once prerequisites are confirmed, run the setup script:
 ./scripts/setup_docker_compose.sh with-cloud-storage
 
 # Cleanup
-cd runs/test_<timestamp> && docker compose down -v
-# Or cleanup everything:
-./scripts/cleanup.sh
+./scripts/cleanup.sh docker
 ```
 
 The script is at `scripts/setup_docker_compose.sh` — read it for the full implementation details.
@@ -141,11 +139,7 @@ Raft Cluster Status:
 ## Cleanup
 
 ```bash
-cd $TEST_RUN
-docker compose down -v
-
-# Or for complete cleanup (all test runs + orphaned containers):
-./scripts/cleanup.sh --all
+./scripts/cleanup.sh docker
 ```
 
 ## Troubleshooting

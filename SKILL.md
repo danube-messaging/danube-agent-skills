@@ -38,7 +38,8 @@ danube-agent-skills/
 │   ├── setup_local_binary.sh   # Download binaries + start brokers
 │   ├── setup_local_source.sh   # Build from source + start brokers
 │   ├── setup_docker_compose.sh # Docker Compose setup
-│   └── cleanup.sh              # Stop all processes and containers
+│   ├── setup_kubernetes.sh     # Kubernetes Helm deployment
+│   └── cleanup.sh              # Per-setup cleanup (binary|source|docker|k8s|all)
 │
 ├── tools/                      # Operational tool references
 │   ├── SKILL.md                # Overview: CLI vs Admin
@@ -186,6 +187,13 @@ Tell the user what you are doing at each major step. Do not run 20 commands in s
 
 ### Rule 5: Teardown Is Mandatory
 If a scenario fails midway, still run cleanup. Port conflicts and orphaned containers from failed runs will break subsequent attempts.
+```bash
+./scripts/cleanup.sh binary    # Local binary processes
+./scripts/cleanup.sh source    # Source-built processes
+./scripts/cleanup.sh docker    # Docker Compose services
+./scripts/cleanup.sh k8s       # Kubernetes deployment
+./scripts/cleanup.sh all       # Everything + remove test-run directories
+```
 
 ### Rule 6: Observe, Don't Guess
 If a command fails, do not retry blindly. Read the relevant logs:
