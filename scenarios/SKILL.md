@@ -10,13 +10,14 @@ description: "End-to-end test workflow catalog. Use when running a specific test
 End-to-end test workflows that combine setups, tools, and clients to validate specific Danube features. Each scenario is a self-contained test with setup requirements, step-by-step instructions, verification criteria, and cleanup.
 
 ## Status
-🚧 **Coming soon** — Scenario implementations are under construction.
+✅ **bring-up-cluster** — Implemented and tested
+🚧 All other scenarios — Under construction
 
 ## Scenario Catalog
 
 | Scenario | Directory | Difficulty | Min Brokers | What It Tests |
 |----------|-----------|------------|-------------|---------------|
-| **Quickstart** | `quickstart/` | Beginner | 1 | Basic produce → consume flow |
+| **Bring Up Cluster** | `bring-up-cluster/` | Beginner | 1 | Get a running Danube (standalone or cluster) for ad-hoc use |
 | **Subscription Types** | `subscription-types/` | Intermediate | 1 | Exclusive, Shared, Failover, Key-Shared |
 | **Reliable Delivery** | `reliable-delivery/` | Intermediate | 1 | WAL-backed at-least-once, NACK + retry |
 | **Partitioned Topics** | `partitioned-topics/` | Intermediate | 3 | Partitioning, routing modes |
@@ -35,7 +36,7 @@ Each scenario dictates which setup method, config flavors, and Docker Compose fl
 
 | Scenario | Supported Setups | Recommended Setup |
 |----------|-----------------|-------------------|
-| `quickstart/` | local-binary, docker-compose, kubernetes | local-binary (simplest) |
+| `bring-up-cluster/` | local-binary, local-source, docker-compose, kubernetes | *(depends on user choice)* |
 | `subscription-types/` | local-binary, docker-compose | docker-compose (includes Prometheus) |
 | `reliable-delivery/` | docker-compose | docker-compose (needs MinIO) |
 | `partitioned-topics/` | docker-compose, local-binary (multi-process) | docker-compose |
@@ -50,7 +51,7 @@ Each scenario dictates which setup method, config flavors, and Docker Compose fl
 
 | Scenario | Config Flavors to Apply |
 |----------|------------------------|
-| `quickstart/` | *(none — use default.yml as-is or standalone mode)* |
+| `bring-up-cluster/` | *(none — use default.yml as-is or standalone mode)* |
 | `subscription-types/` | *(none)* |
 | `reliable-delivery/` | Cloud Storage |
 | `partitioned-topics/` | Cluster |
@@ -65,7 +66,7 @@ Each scenario dictates which setup method, config flavors, and Docker Compose fl
 
 | Scenario | Compose Flavor |
 |----------|---------------|
-| `quickstart/` | quickstart |
+| `bring-up-cluster/` | *(depends on user choice)* |
 | `subscription-types/` | quickstart (or with-ui for metrics) |
 | `reliable-delivery/` | with-cloud-storage |
 | `partitioned-topics/` | quickstart |
