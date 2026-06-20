@@ -198,7 +198,7 @@ danube-admin topics get-failure-policy /default/ks-advanced-test \
 
 ## Cleanup
 
-This scenario only cleans up topics it created. See `scenarios/SKILL.md` → **Infrastructure Lifecycle** for cluster teardown.
+This scenario only cleans up topics it created. See `setups/SKILL.md` → **Cleanup** for cluster teardown.
 
 ```bash
 danube-admin topics delete /default/ks-advanced-test

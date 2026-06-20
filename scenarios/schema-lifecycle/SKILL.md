@@ -244,7 +244,7 @@ danube-cli schema check-compatibility user-events \
 
 ## Cleanup
 
-This scenario only cleans up topics and schemas it created. See `scenarios/SKILL.md` → **Infrastructure Lifecycle** for cluster teardown.
+This scenario only cleans up topics and schemas it created. See `setups/SKILL.md` → **Cleanup** for cluster teardown.
 
 ```bash
 danube-admin topics delete /default/schema-test

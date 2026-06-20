@@ -113,12 +113,12 @@ Once the cluster is running, inform the user what they can do:
 
 - **Produce/consume messages**: Use `danube-cli` (see `tools/danube-cli/SKILL.md`)
 - **Inspect cluster state**: Use `danube-admin` (see `tools/danube-admin/SKILL.md`)
-- **Run a specific scenario**: See `scenarios/SKILL.md` for available test workflows
+- **Run a specific scenario**: See the root `SKILL.md` for available test workflows
 - **Develop with client libraries**: See `clients/SKILL.md`
 
 ## Cleanup
 
-See `scenarios/SKILL.md` → **Infrastructure Lifecycle** for cleanup commands. The cluster stays running until the user explicitly asks to tear it down.
+See `setups/SKILL.md` → **Cleanup** for cleanup commands. The cluster stays running until the user explicitly asks to tear it down.
 
 ## Config Flavors
 

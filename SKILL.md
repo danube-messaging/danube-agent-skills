@@ -59,6 +59,18 @@ Read the selected scenario's `SKILL.md` and follow its **AI Decision Flow** — 
 - `reliable-delivery/` asks: NACK redelivery or Failure policies or Dead letter?
 - `schema-lifecycle/` asks: Backward or Forward or Full compatibility?
 
+Every scenario SKILL.md follows this standardized structure:
+
+1. **Objective** — What you're testing and why
+2. **When to Use** — Keywords and triggers that match this scenario
+3. **Compatible Infrastructure** — Which setup methods and modes (standalone/cluster) this scenario supports
+4. **AI Decision Flow** — Questions to ask the user to configure the test
+5. **Execution Steps** — Step-by-step actions
+6. **Verification** — How to determine success
+7. **Cleanup** — What this scenario's own resources to clean up (topics, scripts)
+
+New scenarios must follow this structure.
+
 ### Step 3 — Agree on Infrastructure
 
 Each scenario has a **Compatible Infrastructure** table. Check what the scenario supports and ask the user which setup method to use:
@@ -88,11 +100,26 @@ If the user selected multiple scenarios, verify all are compatible with the chos
 
 ### Step 4 — Set Up Infrastructure
 
-Run `scenarios/bring-up-cluster/` to deploy Danube, or verify an existing cluster is running. See `setups/SKILL.md` for details.
+Run `scenarios/bring-up-cluster/` to deploy Danube, or verify an existing cluster is running. See `setups/SKILL.md` for details on the `$TEST_RUN` directory structure.
 
 ### Steps 5–6 — Execute & Verify
 
-Follow the scenario's Execution Steps and Verification criteria. All outputs go into the active run directory (see **Test-Run Isolation** below).
+Follow the scenario's Execution Steps and Verification criteria. All outputs go into `$TEST_RUN/scenarios/<scenario-name>/` (see `setups/SKILL.md` → **Test-Run Directory**).
+
+## Scenario Independence & Infrastructure Lifecycle
+
+**Scenarios are independent of each other.** There are no dependencies between scenarios — only infrastructure can be shared. The user may run multiple scenarios on the same `$TEST_RUN`:
+
+```text
+Infrastructure (runs/test_YYYYMMDD_HHMMSS/)
+  ├── Scenario A  (can run on this infra if compatible)
+  ├── Scenario B  (can run on this infra if compatible)
+  └── Scenario C  (can run on this infra if compatible)
+```
+
+The AI must check each scenario's **Compatible Infrastructure** table against the current running setup before executing.
+
+**Scenarios never tear down infrastructure automatically.** They only clean up their own resources (e.g., topics they created). The user decides when to tear down — see `setups/SKILL.md` → **Cleanup**.
 
 ## Repository Structure
 
@@ -101,14 +128,13 @@ danube-agent-skills/
 ├── SKILL.md                    ← You are here (read this first)
 ├── README.md                   # Human-readable overview
 │
-├── scenarios/                  # START HERE — what to test
-│   ├── SKILL.md                # Scenario catalog, conventions, independence rules
-│   ├── bring-up-cluster/       # Get a running Danube
-│   ├── core-messaging/         # Basic produce/consume with features
-│   ├── subscription-patterns/  # Fan-out vs queue, consumer churn
-│   ├── reliable-delivery/      # NACK, ack timeout, failure policies, DLQ
-│   ├── schema-lifecycle/       # Registration, compatibility, version selection
-│   └── key-shared-advanced/    # Key filtering, partitioned key-shared, poison handling
+├── scenarios/                  # START HERE — what to test (each has a SKILL.md)
+│   ├── bring-up-cluster/SKILL.md       # Get a running Danube
+│   ├── core-messaging/SKILL.md         # Basic produce/consume with features
+│   ├── subscription-patterns/SKILL.md  # Fan-out vs queue, consumer churn
+│   ├── reliable-delivery/SKILL.md      # NACK, ack timeout, failure policies, DLQ
+│   ├── schema-lifecycle/SKILL.md       # Registration, compatibility, version selection
+│   └── key-shared-advanced/SKILL.md    # Key filtering, partitioned key-shared, poison handling
 │
 ├── setups/                     # HOW to run Danube (infrastructure)
 │   ├── SKILL.md                # Overview of all setup methods
@@ -174,53 +200,7 @@ danube-agent-skills/
 | "I'm developing Danube" | `scenarios/bring-up-cluster/` → local source setup |
 | "Deploy to Kubernetes" | `scenarios/bring-up-cluster/` → kubernetes setup |
 
-## Test-Run Isolation Model
 
-**Every test execution creates a unique directory under `runs/`.**
-
-The directory name follows the pattern: `test_<YYYYMMDD_HHMMSS>`
-
-Example: `runs/test_20260619_073955/`
-
-### What goes into a test-run directory:
-
-Configuration files live flat at the root. Runtime data and logs get subdirectories:
-
-| Location | Contents |
-|----------|----------|
-| `danube_broker.yml` | Generated broker config (for cluster mode) |
-| `edge.yaml` | Generated edge config (for edge mode) |
-| `docker-compose.yml` | Generated Docker Compose file |
-| `prometheus.yml` | Prometheus scrape config |
-| `*.pem` | TLS certificates (for secure scenarios) |
-| `data/` | Broker data directories (Raft state, WAL files) |
-| `logs/` | Broker logs, test output, command transcripts |
-
-> **Binaries are NOT in $TEST_RUN.** They live in the shared `bin/<version>/` directory at the repo root and are reused across all test runs. See `setups/local-binary/SKILL.md`.
-
-### Why isolation matters:
-
-1. **No interference** — Each test run is independent; previous test artifacts don't affect new runs
-2. **Clean instruction files** — The SKILL.md files and config templates are never modified
-3. **Easy cleanup** — Delete the `runs/test_xxx/` directory to remove all artifacts
-4. **Reproducibility** — The generated configs capture exactly what was tested
-
-### How the AI creates a test run:
-
-```bash
-# 1. Create the test-run directory
-TEST_RUN="runs/test_$(date +%Y%m%d_%H%M%S)"
-mkdir -p "$TEST_RUN"/{data,logs}
-
-# 2. Copy and modify configs as needed (flat at root, no configs/ subfolder)
-cp configs/default.yml "$TEST_RUN/danube_broker.yml"
-# ... modify for the scenario ...
-
-# 3. Binaries come from shared bin/ directory
-DANUBE_BIN="bin/v0.15.0"  # version provided by user
-
-# 4. All subsequent commands use $DANUBE_BIN for binaries, $TEST_RUN for everything else
-```
 
 ## Execution Rules
 
