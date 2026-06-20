@@ -85,9 +85,14 @@ echo "▸ Step 3: Downloading compose files ($FLAVOR)..."
 wget -q "$DANUBE_RAW/prometheus.yml" -O "$TEST_RUN/prometheus.yml"
 echo "  ✓ prometheus.yml"
 
-# Broker config
+# Broker config — copy default and inject Docker seed_nodes for cluster formation
 cp configs/default.yml "$TEST_RUN/danube_broker.yml"
-echo "  ✓ danube_broker.yml (from configs/default.yml)"
+
+# Replace the commented-out seed_nodes with Docker service names
+# so all brokers discover each other via Raft
+sed -i '/^meta_store:/,/^[^ #]/{/seed_nodes/d; /"0\.0\.0\.0:76/d}' "$TEST_RUN/danube_broker.yml"
+sed -i '/^meta_store:/a\  seed_nodes:\n    - "broker1:7650"\n    - "broker2:7650"\n    - "broker3:7650"' "$TEST_RUN/danube_broker.yml"
+echo "  ✓ danube_broker.yml (from configs/default.yml + Docker seed_nodes)"
 
 # Compose file for the selected flavor
 wget -q "$DANUBE_RAW/${FLAVOR}/docker-compose.yml" -O "$TEST_RUN/docker-compose.yml"
@@ -105,8 +110,9 @@ sed -i 's|\.\.\(/danube_broker.*\.yml\)|.\1|g' "$TEST_RUN/docker-compose.yml"
 sed -i 's|\.\.\(/prometheus\.yml\)|.\1|g' "$TEST_RUN/docker-compose.yml"
 
 # Verify the fix
-REMAINING=$(grep -c '\.\.\/' "$TEST_RUN/docker-compose.yml" 2>/dev/null || echo 0)
-if [ "$REMAINING" -gt 0 ]; then
+REMAINING=$(grep -c '\.\./' "$TEST_RUN/docker-compose.yml" 2>/dev/null || true)
+REMAINING=${REMAINING:-0}
+if [ "$REMAINING" -gt 0 ] 2>/dev/null; then
   echo "  ⚠ Warning: $REMAINING relative paths still found in compose file"
   grep '\.\.\/' "$TEST_RUN/docker-compose.yml" | sed 's/^/    /'
 else

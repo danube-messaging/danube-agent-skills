@@ -60,6 +60,12 @@ echo "▸ Step 3: Building and starting $NUM_BROKERS brokers..."
 echo "  (This may take several minutes on first build)"
 make brokers NUM_BROKERS="$NUM_BROKERS"
 
+# Build danube-admin (make brokers only builds danube-broker)
+echo ""
+echo "▸ Step 3b: Building danube-admin for verification..."
+cargo build --release --package danube-admin --bin danube-admin 2>/dev/null
+echo "  ✓ danube-admin built"
+
 # ── Step 4: Wait for readiness ──────────────────────────────────────────────
 echo ""
 echo "▸ Step 4: Waiting for cluster readiness..."

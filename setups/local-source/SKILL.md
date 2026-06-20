@@ -9,17 +9,17 @@ description: "Build Danube from source and run brokers locally via Makefile. Use
 
 Build Danube from the source repository and run brokers locally. This setup is for users who are developing on the Danube codebase and want to test their local changes.
 
-## Required Setup
-None — this IS the setup.
+## Prerequisites (verify before running)
 
-## Required Tools
-- Rust toolchain (`cargo`, `rustc`) — install via [rustup.rs](https://rustup.rs/)
-- The Danube source repository cloned locally
-- `make` (GNU Make)
+Before running the setup script, the AI must confirm these prerequisites:
+
+1. **Ask the user for the Danube source repository path.** The user must have the repo cloned locally. Do not assume or hardcode any path.
+2. **Verify the Rust toolchain is installed:** `cargo --version` and `rustc --version`. If not installed, direct the user to [rustup.rs](https://rustup.rs/).
+3. **Verify `make` is installed:** `which make`. Required for building and managing brokers.
 
 ## How to Run
 
-Use the setup script. It validates the repo path, builds via the Makefile, waits for readiness, and verifies cluster health — all in one command.
+Once prerequisites are confirmed, run the setup script with the user-provided repo path:
 
 ```bash
 # Build and start a 3-broker cluster from source
@@ -28,8 +28,6 @@ Use the setup script. It validates the repo path, builds via the Makefile, waits
 # Cleanup
 cd /path/to/danube && make brokers-clean
 ```
-
-The user **must provide the path** to their local Danube source repository. Do not hardcode any path.
 
 The script is at `scripts/setup_local_source.sh` — read it for the full implementation details.
 
@@ -49,7 +47,7 @@ The Makefile always runs brokers in cluster mode (with config file + seed nodes)
 - **Test-specific**: The repo includes configs in `config/for_tests/` (rebalance, shared_fs, write_buffer)
 
 ### Binaries Are Built Locally
-After `make brokers`, binaries are at `$DANUBE_REPO/target/release/danube-broker` (and `danube-cli`, `danube-admin`). These are local to the source repo, not shared in `bin/<version>/`.
+`make brokers` only builds `danube-broker`. The setup script builds `danube-admin` separately for verification (`cargo build --release --package danube-admin`). Binaries are at `$DANUBE_REPO/target/release/`.
 
 ## Available Makefile Targets
 
