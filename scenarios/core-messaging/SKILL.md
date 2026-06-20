@@ -16,10 +16,18 @@ Test Danube's core messaging features by producing and consuming messages with t
 - User wants to explore subscription types (Exclusive, Shared, Key-Shared)
 - User wants to test partitioned topics or schema validation
 
-## Prerequisite
+## Compatible Infrastructure
 
-A running Danube cluster or standalone broker. If not running, use `scenarios/bring-up-cluster/` first.
+This scenario requires a running Danube broker. It works with any setup method and any mode:
 
+| Setup Method | Standalone | Cluster | Notes |
+|-------------|:----------:|:-------:|-------|
+| Local Binary | ✅ | ✅ | `danube-cli` and `danube-admin` must be in PATH or `bin/` |
+| Local Source | ✅ | ✅ | Same as binary |
+| Docker Compose | ✅ | ✅ | Use exposed ports (default: 6650, 50051) |
+| Kubernetes | — | ✅ | Use port-forwarded or NodePort addresses |
+
+**Key-Shared subscription** works best with a cluster (2+ brokers) where consistent hashing distributes keys across consumers. With a standalone broker, all keys may route to the same consumer — this is valid but doesn't demonstrate distribution.
 
 ## AI Decision Flow
 

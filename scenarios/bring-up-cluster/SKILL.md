@@ -18,6 +18,19 @@ This is the simplest scenario. It deploys Danube infrastructure and hands it to 
 - User wants to explore the CLI, admin tools, or client libraries
 - Any time a running Danube is needed but no specific test scenario is requested
 
+## Compatible Infrastructure
+
+This scenario **creates** the infrastructure — it has no prerequisites. It supports all setup methods:
+
+| Setup Method | Standalone | Cluster | Script |
+|-------------|:----------:|:-------:|--------|
+| Local Binary | ✅ | ✅ | `./scripts/setup_local_binary.sh` |
+| Local Source | ✅ | ✅ | `./scripts/setup_local_source.sh` |
+| Docker Compose | ✅ | ✅ | `./scripts/setup_docker_compose.sh` |
+| Kubernetes | — | ✅ | `./scripts/setup_kubernetes.sh` |
+
+Tool-specific prerequisites are documented in each setup SKILL.md (e.g., `setups/local-binary/SKILL.md`).
+
 ## AI Decision Flow
 
 The AI must gather the following information before running any setup. Ask the user if any are unclear.
@@ -32,12 +45,12 @@ The AI must gather the following information before running any setup. Ask the u
 
 ### 2. Which Setup Method?
 
-| User says | Setup | Script |
-|-----------|-------|--------|
-| "from source", "I'm developing", "build it" | **Local Source** | `./scripts/setup_local_source.sh` |
-| "docker", "compose", "containers" | **Docker Compose** | `./scripts/setup_docker_compose.sh` |
-| "kubernetes", "k8s", "helm" | **Kubernetes** | `./scripts/setup_kubernetes.sh` |
-| "binary", "download", "no docker" | **Local Binary** | `./scripts/setup_local_binary.sh` |
+| User says | Setup |
+|-----------|-------|
+| "from source", "I'm developing", "build it" | **Local Source** |
+| "docker", "compose", "containers" | **Docker Compose** |
+| "kubernetes", "k8s", "helm" | **Kubernetes** |
+| "binary", "download", "no docker" | **Local Binary** |
 | *(unclear)* | Ask: "How would you like to run Danube?" and present the options |
 
 **If still unclear**, use this fallback logic:
@@ -56,17 +69,6 @@ Once mode and setup are known, gather any remaining parameters:
 | **Local Source** | Path to cloned Danube repository |
 | **Docker Compose** | Compose flavor: `quickstart` (default), `with-ui`, `with-cloud-storage` |
 | **Kubernetes** | Confirm cluster is accessible (`kubectl cluster-info`) |
-
-## Prerequisites
-
-Prerequisites depend on the chosen setup. Read the setup SKILL.md for the full list:
-
-| Setup | Prerequisites SKILL |
-|-------|-------------------|
-| Local Binary | `setups/local-binary/SKILL.md` — needs curl/wget, tar |
-| Local Source | `setups/local-source/SKILL.md` — needs Rust toolchain, make, cloned repo |
-| Docker Compose | `setups/docker-compose/SKILL.md` — needs Docker, Docker Compose, wget |
-| Kubernetes | `setups/kubernetes/SKILL.md` — needs kubectl, helm, running cluster |
 
 ## Execution
 
