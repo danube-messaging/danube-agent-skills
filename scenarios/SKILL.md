@@ -9,12 +9,38 @@ description: "End-to-end test workflow catalog. Use when running a specific test
 
 End-to-end test workflows that combine setups, tools, and clients to validate specific Danube features. Each scenario is a self-contained workflow with setup requirements, step-by-step instructions, and verification criteria.
 
+Scenarios are split into two categories:
+
+- **User Functionality** — validates features that application developers use (messaging, schemas, subscriptions)
+- **Operational** — validates features that platform teams / admins use (scaling, migration, security, monitoring)
+
 ## Implemented Scenarios
+
+### Infrastructure
 
 | Scenario | Directory | What It Does |
 |----------|-----------|-------------|
 | **Bring Up Cluster** | `bring-up-cluster/` | Get a running Danube (standalone or cluster) for ad-hoc use |
-| **Core Messaging** | `core-messaging/` | Test subscriptions, schemas, reliable delivery, partitioned topics |
+
+### User Functionality
+
+| Scenario | Directory | What It Does | Difficulty |
+|----------|-----------|-------------|-----------|
+| **Core Messaging** | `core-messaging/` | Basic produce/consume with any subscription type, reliability, partitions, schema | Easy |
+| **Subscription Patterns** | `subscription-patterns/` | Fan-out (pub-sub) vs queue (work distribution), consumer churn | Easy |
+| **Reliable Delivery** | `reliable-delivery/` | NACK redelivery, ack timeout, failure policies (block/drop/dead-letter), reconnection | Intermediate |
+| **Schema Lifecycle** | `schema-lifecycle/` | Registration, validation, compatibility modes, version selection, evolution | Intermediate |
+| **Key-Shared Advanced** | `key-shared-advanced/` | Glob key filtering, partitioned key-shared, poison handling, consumer churn | Intermediate |
+
+### Operational (Future)
+
+| Scenario | Directory | What It Would Test | Difficulty |
+|----------|-----------|-------------------|-----------|
+| Topic Migration | *(not implemented)* | Reliable topic move between brokers, offset continuity, zero message loss | Advanced |
+| Broker Scaling | *(not implemented)* | Scale up/down, Raft membership changes, rebalancing | Advanced |
+| Security RBAC | *(not implemented)* | TLS, JWT tokens, RBAC roles and bindings | Advanced |
+| Edge MQTT | *(not implemented)* | MQTT ingestion via edge broker, store-and-forward | Intermediate |
+| Cluster Health | *(not implemented)* | Health checks, metrics, diagnostics under failure | Intermediate |
 
 ## How Scenarios Work
 
@@ -83,19 +109,3 @@ The user decides when to tear down. When they do:
 ./scripts/cleanup.sh docker    # Docker Compose
 ./scripts/cleanup.sh k8s       # Kubernetes
 ```
-
-## Maybe (Future Ideas)
-
-These scenarios are ideas for future implementation. They are not yet built.
-
-| Scenario | Difficulty | What It Would Test |
-|----------|------------|-------------------|
-| Subscription Types Deep Dive | Intermediate | Exclusive vs Shared vs Failover vs Key-Shared side-by-side comparison |
-| Reliable Delivery Stress Test | Intermediate | WAL-backed at-least-once under load, NACK + retry |
-| Partitioned Topics | Intermediate | Partitioning, routing modes, cross-partition ordering |
-| Broker Scaling | Advanced | Scale up/down, Raft membership changes |
-| Topic Migration | Advanced | Reliable topic move between brokers, zero message loss |
-| Schema Evolution | Intermediate | Schema versioning, compatibility modes, breaking change detection |
-| Security RBAC | Advanced | TLS, JWT tokens, RBAC roles and bindings |
-| Edge MQTT | Intermediate | MQTT ingestion via edge broker, store-and-forward |
-| Cluster Health | Intermediate | Health checks, metrics, diagnostics under failure |

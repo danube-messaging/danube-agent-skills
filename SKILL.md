@@ -1,13 +1,98 @@
 ---
 name: danube-agent-skills
-description: "Root router for Danube testing skills. Use this to understand the repository structure, select the right setup method, and navigate to specific skills for configs, setups, tools, clients, and scenarios."
+description: "Root router for Danube testing skills. Start here — present available scenarios to the user, agree on what to test, then set up infrastructure and run."
 ---
 
 # Skill: Danube Agent Skills — Root Router
 
 ## What Is This Repository?
 
-This repository teaches AI agents how to set up, test, and validate [Danube Messaging](https://github.com/danube-messaging/danube). It contains structured `SKILL.md` files organized into five pillars that the AI composes together based on the user's request.
+This repository teaches AI agents how to set up, test, and validate [Danube Messaging](https://github.com/danube-messaging/danube). It contains structured `SKILL.md` files that the AI composes together based on the user's request.
+
+## AI Workflow — Scenario-First Approach
+
+**Scenarios drive everything.** When a user wants to test Danube, follow this workflow:
+
+```text
+Step 1: PRESENT available scenarios → User selects what to test
+Step 2: CONFIGURE the scenario → AI asks scenario-specific questions
+Step 3: AGREE on infrastructure → Setup method + mode derived from scenario
+Step 4: SET UP infrastructure → Run setup script, verify readiness
+Step 5: EXECUTE the scenario → Run the test steps
+Step 6: VERIFY results → Check pass/fail criteria
+```
+
+### Step 1 — Present Scenarios
+
+Show the user what's available, organized by category. The user picks one or more scenarios to run on the same infrastructure.
+
+#### User Functionality (for application developers)
+
+| Scenario | What You're Testing | Difficulty |
+|----------|-------------------|-----------|
+| **Core Messaging** | Basic produce/consume — pick subscription type, reliability, partitions, schema | Easy |
+| **Subscription Patterns** | Fan-out (broadcast) vs Queue (work distribution), consumer churn | Easy |
+| **Reliable Delivery** | NACK redelivery, ack timeout, failure policies (block/drop/dead-letter), reconnection | Intermediate |
+| **Schema Lifecycle** | Schema registration, validation, compatibility modes, version selection, evolution | Intermediate |
+| **Key-Shared Advanced** | Glob key filtering, partitioned key-shared, poison message handling | Intermediate |
+
+#### Operational (for platform teams / admins) — future
+
+| Scenario | What You're Testing | Status |
+|----------|-------------------|--------|
+| Topic Migration | Reliable topic move between brokers, offset continuity | Not implemented |
+| Broker Scaling | Scale up/down, Raft membership changes | Not implemented |
+| Security RBAC | TLS, JWT tokens, RBAC roles and bindings | Not implemented |
+| Edge MQTT | MQTT ingestion via edge broker, store-and-forward | Not implemented |
+| Cluster Health | Health checks, metrics, diagnostics under failure | Not implemented |
+
+#### Infrastructure Only
+
+| Scenario | What You're Doing |
+|----------|------------------|
+| **Bring Up Cluster** | Get a running Danube (standalone or cluster) for ad-hoc use — no automated test |
+
+### Step 2 — Configure the Scenario
+
+Read the selected scenario's `SKILL.md` and follow its **AI Decision Flow** — each scenario asks targeted questions to narrow down what exactly to test. For example:
+- `subscription-patterns/` asks: Fan-out or Queue or Both?
+- `reliable-delivery/` asks: NACK redelivery or Failure policies or Dead letter?
+- `schema-lifecycle/` asks: Backward or Forward or Full compatibility?
+
+### Step 3 — Agree on Infrastructure
+
+Each scenario has a **Compatible Infrastructure** table. Check what the scenario supports and ask the user which setup method to use:
+
+| Setup Method | When to Use |
+|-------------|------------|
+| **Local Binary** | Quickest, no dependencies beyond curl. Good for most tests |
+| **Local Source** | User is developing on the Danube codebase |
+| **Docker Compose** | User prefers containers. Supports special infra (MinIO, Valkey) |
+| **Kubernetes** | User wants to test on a K8s cluster |
+
+If the user selected multiple scenarios, verify all are compatible with the chosen infrastructure.
+
+**If still unclear**, use this fallback:
+```text
+├── Is the user developing on the Danube source code?
+│   ├── YES → setups/local-source/
+│   └── NO → continue
+├── Does the user prefer Docker?
+│   ├── YES → setups/docker-compose/
+│   └── NO → continue
+├── Does the scenario require Kubernetes features?
+│   ├── YES → setups/kubernetes/
+│   └── NO → continue
+└── Default → setups/local-binary/ (standalone)
+```
+
+### Step 4 — Set Up Infrastructure
+
+Run `scenarios/bring-up-cluster/` to deploy Danube, or verify an existing cluster is running. See `setups/SKILL.md` for details.
+
+### Steps 5–6 — Execute & Verify
+
+Follow the scenario's Execution Steps and Verification criteria. All outputs go into the active run directory (see **Test-Run Isolation** below).
 
 ## Repository Structure
 
@@ -16,37 +101,39 @@ danube-agent-skills/
 ├── SKILL.md                    ← You are here (read this first)
 ├── README.md                   # Human-readable overview
 │
-├── configs/                    # Broker configuration templates & flavors
-│   ├── SKILL.md                # How the config system works
-│   ├── default.yml             # Broker config template (used by cluster mode)
-│   ├── edge.yaml               # Edge broker template (for MQTT scenarios)
-│   └── flavors/
-│       └── SKILL.md            # Overlay reference: what to change per scenario
+├── scenarios/                  # START HERE — what to test
+│   ├── SKILL.md                # Scenario catalog, conventions, independence rules
+│   ├── bring-up-cluster/       # Get a running Danube
+│   ├── core-messaging/         # Basic produce/consume with features
+│   ├── subscription-patterns/  # Fan-out vs queue, consumer churn
+│   ├── reliable-delivery/      # NACK, ack timeout, failure policies, DLQ
+│   ├── schema-lifecycle/       # Registration, compatibility, version selection
+│   └── key-shared-advanced/    # Key filtering, partitioned key-shared, poison handling
 │
-├── setups/                     # How to run Danube (infrastructure)
+├── setups/                     # HOW to run Danube (infrastructure)
 │   ├── SKILL.md                # Overview of all setup methods
-│   ├── local-binary/           # Download pre-built binaries
-│   │   └── SKILL.md
-│   ├── local-source/           # Build from danube source repo
-│   │   └── SKILL.md
-│   ├── docker-compose/         # Run via Docker Compose
-│   │   └── SKILL.md
-│   └── kubernetes/             # Deploy to Kubernetes
-│       └── SKILL.md
+│   ├── local-binary/SKILL.md   # Download pre-built binaries
+│   ├── local-source/SKILL.md   # Build from danube source repo
+│   ├── docker-compose/SKILL.md # Run via Docker Compose
+│   └── kubernetes/SKILL.md     # Deploy to Kubernetes
 │
-├── scripts/                    # Executable setup scripts (run in one command)
+├── scripts/                    # Executable setup scripts
 │   ├── setup_local_binary.sh   # Download binaries + start brokers
 │   ├── setup_local_source.sh   # Build from source + start brokers
 │   ├── setup_docker_compose.sh # Docker Compose setup
 │   ├── setup_kubernetes.sh     # Kubernetes Helm deployment
 │   └── cleanup.sh              # Per-setup cleanup (binary|source|docker|k8s|all)
 │
-├── tools/                      # Operational tool references
+├── configs/                    # Broker configuration
+│   ├── SKILL.md                # How the config system works
+│   ├── default.yml             # Broker config template
+│   ├── edge.yaml               # Edge broker template
+│   └── flavors/SKILL.md        # Overlay reference per scenario
+│
+├── tools/                      # Operational tools
 │   ├── SKILL.md                # Overview: CLI vs Admin
-│   ├── danube-cli/             # Data plane operations
-│   │   └── SKILL.md
-│   └── danube-admin/           # Control plane operations
-│       └── SKILL.md
+│   ├── danube-cli/SKILL.md     # Data plane operations
+│   └── danube-admin/SKILL.md   # Control plane operations
 │
 ├── clients/                    # Client libraries for test traffic
 │   ├── SKILL.md                # Overview & language selection
@@ -55,64 +142,37 @@ danube-agent-skills/
 │   ├── go/SKILL.md             # Go client (danube-go)
 │   └── java/SKILL.md           # Java client (danube-client)
 │
-├── scenarios/                  # End-to-end test workflows
-│   ├── SKILL.md                # Scenario catalog
-│   ├── bring-up-cluster/       # Get a running Danube
-│   │   └── SKILL.md
-│   └── core-messaging/         # Test subscriptions, schemas, reliability
-│       └── SKILL.md
-│
 ├── bin/                        # Shared downloaded binaries (git-ignored)
 │   └── v0.15.0/                # One subdirectory per release version
-│       ├── danube-broker
-│       ├── danube-cli
-│       └── danube-admin
 │
 └── runs/                       # Auto-generated test directories (git-ignored)
     └── test_YYYYMMDD_HHMMSS/   # One directory per infra session
         ├── configs/             # Generated broker configs
         ├── data/               # Broker data (Raft, WAL)
         ├── logs/               # Broker logs
-        └── scenarios/          # Scenario outputs (created by scenario execution)
+        └── scenarios/          # Scenario outputs
             └── core-messaging/ # Scripts and logs from running a scenario
 ```
 
-## The Five Pillars
+## Quick Start: What to Read for Common Tasks
 
-| Pillar | Purpose | When to Read |
-|--------|---------|-------------|
-| **configs/** | One default config + overlay deltas per scenario | Before any setup — choose the right config |
-| **setups/** | Infrastructure bootstrapping (binary, Docker, K8s, source) | To spin up Danube brokers |
-| **tools/** | How to use `danube-cli` and `danube-admin` | To execute commands against brokers |
-| **clients/** | Client code in Go, Python, Rust, Java | To generate test traffic programmatically |
-| **scenarios/** | End-to-end test workflows combining all pillars | To run a specific test |
-
-## Setup Selection Decision Tree
-
-When a user wants to test Danube, follow this tree to pick the right setup method:
-
-```text
-User wants to test Danube
-├── Is the user developing on the Danube source code?
-│   ├── YES → setups/local-source/
-│   └── NO → continue
-├── Does the user prefer Docker?
-│   ├── YES → Does the scenario require special infra (MinIO, Valkey)?
-│   │   ├── YES → setups/docker-compose/ (with-cloud-storage flavor)
-│   │   └── NO → setups/docker-compose/ (quickstart flavor)
-│   └── NO → continue
-├── Does the scenario require Kubernetes features?
-│   ├── YES → setups/kubernetes/
-│   └── NO → continue
-├── Is a single standalone broker sufficient?
-│   ├── YES → setups/local-binary/ (standalone mode)
-│   └── NO → setups/local-binary/ (cluster mode with port offsets)
-└── Default: setups/docker-compose/ (quickstart)
-```
-
-### Scenario → Infrastructure Mapping
-
-Each scenario dictates which setup, config, and tools it needs. See `scenarios/SKILL.md` for the full requirements table.
+| User Goal | Scenario |
+|-----------|----------|
+| "I want to try Danube" | `scenarios/bring-up-cluster/` → AI picks setup method |
+| "Run a quick test" | `scenarios/bring-up-cluster/` → standalone binary |
+| "Test subscriptions" | `scenarios/core-messaging/` → AI asks which type |
+| "Fan-out vs queue" | `scenarios/subscription-patterns/` → compare both patterns |
+| "Consumer churn" | `scenarios/subscription-patterns/` → churn test |
+| "Test reliable delivery" | `scenarios/reliable-delivery/` → NACK, timeout, policies |
+| "Dead letter queue" | `scenarios/reliable-delivery/` → DLQ flow |
+| "Test schema validation" | `scenarios/schema-lifecycle/` → registration + validation |
+| "Schema compatibility" | `scenarios/schema-lifecycle/` → backward/forward/full |
+| "Key filtering" | `scenarios/key-shared-advanced/` → glob filter test |
+| "Poison message handling" | `scenarios/key-shared-advanced/` → block/drop policies |
+| "Send messages with schema" | `scenarios/core-messaging/` → schema=yes |
+| "Write a Python producer" | `scenarios/core-messaging/` → Python client |
+| "I'm developing Danube" | `scenarios/bring-up-cluster/` → local source setup |
+| "Deploy to Kubernetes" | `scenarios/bring-up-cluster/` → kubernetes setup |
 
 ## Test-Run Isolation Model
 
@@ -166,10 +226,13 @@ DANUBE_BIN="bin/v0.15.0"  # version provided by user
 
 These rules apply to ALL AI agents using this repository:
 
-### Rule 1: Always Ask Before Setting Up Infrastructure
+### Rule 1: Scenarios First, Infrastructure Second
+Always present the available scenarios to the user before asking about infrastructure. The scenario determines what infrastructure is needed, not the other way around.
+
+### Rule 2: Always Ask Before Setting Up Infrastructure
 Do not spin up Docker containers, start brokers, or download binaries without telling the user what you are about to do and confirming. Infrastructure decisions should be explicit.
 
-### Rule 2: Check Before Act
+### Rule 3: Check Before Act
 Before running any setup, verify the environment:
 ```bash
 # Check required tools
@@ -185,16 +248,16 @@ pgrep -la danube-broker
 docker ps --filter "name=danube"
 ```
 
-### Rule 3: Wait for Readiness
+### Rule 4: Wait for Readiness
 A process starting does not mean it is ready. After starting brokers:
 - **Local brokers**: Poll with `danube-admin cluster status` until leader is elected
 - **Docker Compose**: Wait for `docker compose ps` to show `Up (healthy)` for all brokers
 - **Kubernetes**: Wait for `kubectl get pods -n danube` to show `Running` and `1/1 READY`
 
-### Rule 4: Report Progress
+### Rule 5: Report Progress
 Tell the user what you are doing at each major step. Do not run 20 commands in silence.
 
-### Rule 5: Teardown Is Mandatory
+### Rule 6: Teardown Is Mandatory
 If a scenario fails midway, still run cleanup. Port conflicts and orphaned containers from failed runs will break subsequent attempts.
 ```bash
 ./scripts/cleanup.sh binary    # Local binary processes
@@ -204,7 +267,7 @@ If a scenario fails midway, still run cleanup. Port conflicts and orphaned conta
 ./scripts/cleanup.sh all       # Everything + remove test-run directories
 ```
 
-### Rule 6: Observe, Don't Guess
+### Rule 7: Observe, Don't Guess
 If a command fails, do not retry blindly. Read the relevant logs:
 ```bash
 # Local broker logs
@@ -217,7 +280,7 @@ docker logs danube-broker1 --tail 50
 kubectl logs danube-core-broker-0 -n danube --tail 50
 ```
 
-### Rule 7: Use the Config System
+### Rule 8: Use the Config System
 Never hardcode broker configuration. Always:
 1. Copy `configs/default.yml` to `$TEST_RUN/danube_broker.yml`
 2. Read `configs/flavors/SKILL.md` for the scenario-specific deltas
@@ -243,15 +306,3 @@ Additional services:
 - **MinIO API**: 9000, **Console**: 9001
 - **Edge MQTT**: 1883
 - **Edge Broker**: 6653 / 50054 / 7653
-
-## Quick Start: What to Read for Common Tasks
-
-| User Goal | Scenario / Command |
-|-----------|-------------------|
-| "I want to try Danube" | `scenarios/bring-up-cluster/` → AI picks setup method |
-| "Run a quick test" | `scenarios/bring-up-cluster/` → standalone binary |
-| "Test subscriptions" | `scenarios/core-messaging/` → AI asks which type |
-| "Send messages with schema" | `scenarios/core-messaging/` → schema=yes |
-| "Write a Python producer" | `scenarios/core-messaging/` → Python client |
-| "I'm developing Danube" | `scenarios/bring-up-cluster/` → local source setup |
-| "Deploy to Kubernetes" | `scenarios/bring-up-cluster/` → kubernetes setup |

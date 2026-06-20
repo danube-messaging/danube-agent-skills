@@ -30,6 +30,62 @@ Provide four methods for running Danube brokers. Each method has a dedicated SKI
 | Need MinIO/S3 storage? | `docker-compose/` (with-cloud-storage) | Continue |
 | Default | `local-binary/` (standalone) or `docker-compose/` (quickstart) | — |
 
+## Test-Run Directory (`$TEST_RUN`)
+
+**Every infrastructure session creates a unique directory under `runs/`.** This is the most important convention in the repo — all setup scripts, configs, logs, data, and scenario outputs live here.
+
+### How It's Created
+
+Setup scripts create the directory automatically:
+
+```bash
+TEST_RUN="runs/test_$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$TEST_RUN"/{data,logs}
+```
+
+### Directory Layout
+
+```text
+runs/test_20260620_105703/              ← one infrastructure session
+  ├── danube_broker.yml                 ← generated broker config (copied from configs/default.yml)
+  ├── edge.yaml                         ← edge config (if edge scenario)
+  ├── docker-compose.yml                ← generated compose file (Docker setup only)
+  ├── prometheus.yml                    ← Prometheus scrape config (if monitoring)
+  ├── *.pem                             ← TLS certs (if secure scenario)
+  │
+  ├── data/                             ← broker runtime data
+  │   ├── standalone/                   ← standalone mode
+  │   │   ├── raft/                     ← Raft consensus state
+  │   │   └── wal/                      ← Write-ahead log
+  │   ├── broker_6650/                  ← cluster mode, broker 0
+  │   │   ├── raft/
+  │   │   └── wal/
+  │   ├── broker_6651/                  ← cluster mode, broker 1
+  │   └── broker_6652/                  ← cluster mode, broker 2
+  │
+  ├── logs/                             ← broker logs
+  │   ├── broker_standalone.log         ← standalone mode
+  │   ├── broker_6650.log               ← cluster mode, broker 0
+  │   ├── broker_6651.log               ← cluster mode, broker 1
+  │   └── broker_6652.log               ← cluster mode, broker 2
+  │
+  └── scenarios/                        ← scenario outputs (created by scenario execution)
+      ├── core-messaging/               ← scenario 1
+      │   ├── producer.py
+      │   ├── consumer.py
+      │   └── output.log
+      └── subscription-patterns/        ← scenario 2 (same infra session)
+```
+
+### Key Rules
+
+1. **Binaries are NOT in `$TEST_RUN`** — they live in `bin/<version>/` at the repo root and are shared across all runs
+2. **Configs are copied, not linked** — each run has its own copy of `danube_broker.yml` so configs are reproducible
+3. **Brokers run FROM `$TEST_RUN`** — this is required because `storage.local_wal_root` resolves relative to the working directory
+4. **Scenarios create subdirectories** — each scenario creates `$TEST_RUN/scenarios/<scenario-name>/` for its outputs
+5. **Multiple scenarios share one run** — the user can run several scenarios against the same running infra
+6. **Cleanup is simple** — `rm -rf runs/test_20260620_105703/` removes everything for that session
+
 ## Port Allocation
 
 All setup methods use the same port scheme:
