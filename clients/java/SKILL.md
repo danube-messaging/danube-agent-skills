@@ -14,7 +14,7 @@ description: "Java client library for Danube. Use when generating Java producer/
 
 **Gradle:**
 ```groovy
-implementation 'com.danube-messaging:danube-client:0.4.0'
+implementation 'com.danube-messaging:danube-client:0.5.0'
 ```
 
 **Maven:**
@@ -22,14 +22,14 @@ implementation 'com.danube-messaging:danube-client:0.4.0'
 <dependency>
     <groupId>com.danube-messaging</groupId>
     <artifactId>danube-client</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
 </dependency>
 ```
 
 ## Client Creation
 
 ```java
-import com.danube.client.DanubeClient;
+import com.danubemessaging.client.DanubeClient;
 
 DanubeClient client = DanubeClient.builder()
         .serviceUrl("http://127.0.0.1:6650")
@@ -41,7 +41,7 @@ DanubeClient client = DanubeClient.builder()
 ### Basic Producer
 
 ```java
-import com.danube.client.Producer;
+import com.danubemessaging.client.Producer;
 import java.util.Map;
 
 Producer producer = client.newProducer()
@@ -81,7 +81,7 @@ producer.create();
 ### Reliable Dispatch Producer
 
 ```java
-import com.danube.client.DispatchStrategy;
+import com.danubemessaging.client.DispatchStrategy;
 
 Producer producer = client.newProducer()
         .withTopic("/default/critical-events")
@@ -112,9 +112,9 @@ producer.send(event.getBytes(), Map.of());
 ### Basic Consumer (Exclusive)
 
 ```java
-import com.danube.client.Consumer;
-import com.danube.client.SubType;
-import com.danube.client.StreamMessage;
+import com.danubemessaging.client.Consumer;
+import com.danubemessaging.client.SubType;
+import com.danubemessaging.client.model.StreamMessage;
 import java.util.concurrent.Flow;
 
 Consumer consumer = client.newConsumer()
@@ -266,7 +266,7 @@ Filter patterns use glob syntax: `"payment"` (exact), `"ship*"` (prefix), `"eu-w
 ### Create Schema Client
 
 ```java
-import com.danube.client.SchemaRegistryClient;
+import com.danubemessaging.client.SchemaRegistryClient;
 
 SchemaRegistryClient schemaClient = client.newSchemaRegistry();
 ```
@@ -274,7 +274,7 @@ SchemaRegistryClient schemaClient = client.newSchemaRegistry();
 ### Register JSON Schema
 
 ```java
-import com.danube.client.SchemaType;
+import com.danubemessaging.client.schema.SchemaType;
 
 String jsonSchema = """
         {
@@ -347,7 +347,8 @@ if (result.compatible()) {
 ## Complete Example: Simple Producer & Consumer
 
 ```java
-import com.danube.client.*;
+import com.danubemessaging.client.*;
+import com.danubemessaging.client.model.StreamMessage;
 import java.util.Map;
 import java.util.concurrent.Flow;
 import java.util.concurrent.CountDownLatch;

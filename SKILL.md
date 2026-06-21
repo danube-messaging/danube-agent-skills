@@ -20,6 +20,7 @@ Step 3: AGREE on infrastructure → Setup method + mode derived from scenario
 Step 4: SET UP infrastructure → Run setup script, verify readiness
 Step 5: EXECUTE the scenario → Run the test steps
 Step 6: VERIFY results → Check pass/fail criteria
+Step 7: NEXT ACTION → Ask user: another scenario, another aspect, or teardown
 ```
 
 ### Step 1 — Present Scenarios
@@ -92,30 +93,14 @@ New scenarios must follow this structure.
 
 ### Step 3 — Agree on Infrastructure
 
-Each scenario has a **Compatible Infrastructure** table. Check what the scenario supports and ask the user which setup method to use:
+Each scenario has a **Compatible Infrastructure** table. Confirm the setup method with the user — present the options and let them choose. Default: **Local Binary**.
 
 | Setup Method | When to Use |
 |-------------|------------|
-| **Local Binary** | Quickest, no dependencies beyond curl. Good for most tests |
+| **Local Binary** (default) | Quickest, no dependencies beyond curl. Good for most tests |
 | **Local Source** | User is developing on the Danube codebase |
 | **Docker Compose** | User prefers containers. Supports special infra (MinIO, Valkey) |
 | **Kubernetes** | User wants to test on a K8s cluster |
-
-If the user selected multiple scenarios, verify all are compatible with the chosen infrastructure.
-
-**If still unclear**, use this fallback:
-```text
-├── Is the user developing on the Danube source code?
-│   ├── YES → setups/local-source/
-│   └── NO → continue
-├── Does the user prefer Docker?
-│   ├── YES → setups/docker-compose/
-│   └── NO → continue
-├── Does the scenario require Kubernetes features?
-│   ├── YES → setups/kubernetes/
-│   └── NO → continue
-└── Default → setups/local-binary/ (standalone)
-```
 
 ### Step 4 — Set Up Infrastructure
 
@@ -137,10 +122,89 @@ The script creates `$TEST_RUN`, downloads binaries (if needed), starts brokers, 
 
 ### Steps 5–6 — Execute & Verify
 
-Follow the scenario's Execution Steps and Verification criteria. All outputs go into `$TEST_RUN/scenarios/<scenario-name>/` (see `setups/SKILL.md` → **Test-Run Directory**).
+Follow the scenario's Execution Steps and Verification criteria. All outputs go into `$TEST_RUN/scenarios/<scenario-name>/`.
 
-## Scenario Independence & Infrastructure Lifecycle
+**Output capture:** Always pipe test execution through `tee` to create `output.log`:
+```bash
+python test_patterns.py 2>&1 | tee output.log
+go run main.go 2>&1 | tee output.log
+```
 
+**Post-test summary:** After the test completes, present a summary to the user:
+- **Artifacts created:** list the files in `$TEST_RUN/scenarios/<scenario-name>/` (scripts, logs, data)
+- **Test results:** pass/fail for each test flow, with key numbers (e.g., "36/36 messages received")
+- **Observations:** anything unexpected, API issues, or SKILL.md gaps discovered during the run
+- **Output log path:** point the user to the `output.log` for the full execution trace
+
+### Step 7 — Next Action
+
+**After a test completes, ask the user what to do next:**
+- Run another scenario on the **same infrastructure** (no teardown needed)
+- Run another aspect/sub-test of the **same scenario** (no teardown needed)
+- **Tear down** infrastructure and end the session, see `setups/SKILL.md` → **Cleanup**
+
+**Never auto-teardown.** The user decides when infrastructure is torn down.
+
+
+## Execution Rules
+
+These rules apply to ALL AI agents using this repository:
+
+### Rule 1: Scenarios First, Infrastructure Second
+Always present the available scenarios to the user before asking about infrastructure. The scenario determines what infrastructure is needed, not the other way around.
+
+### Rule 2: Always Ask Before Setting Up Infrastructure
+Do not spin up Docker containers, start brokers, or download binaries without telling the user what you are about to do and confirming. Infrastructure decisions should be explicit.
+
+### Rule 3: Check Before Act
+Before running any setup, run the prerequisites check script:
+```bash
+./scripts/check_prereqs.sh binary   # for local binary setup
+./scripts/check_prereqs.sh source   # for local source setup
+./scripts/check_prereqs.sh docker   # for Docker Compose setup
+./scripts/check_prereqs.sh k8s      # for Kubernetes setup
+```
+This checks required tools, port availability, and existing Danube processes in one command.
+
+### Rule 4: Use the Setup Scripts
+**Do not start brokers manually with individual commands.** Always use the setup scripts from `scripts/`. They handle directory creation, binary download, config copying, broker startup, readiness checks, and verification — all in one shot.
+
+### Rule 5: Report Progress
+Tell the user what you are doing at each major step. Do not run 20 commands in silence.
+
+### Rule 6: Clean Up on Failure
+If a scenario fails midway, still run cleanup to avoid orphaned processes. Port conflicts and stale containers from failed runs will break subsequent attempts. This does NOT mean auto-teardown after success — see **Step 7** for that.
+```bash
+./scripts/cleanup.sh binary    # Local binary processes
+./scripts/cleanup.sh source    # Source-built processes
+./scripts/cleanup.sh docker    # Docker Compose services
+./scripts/cleanup.sh k8s       # Kubernetes deployment
+./scripts/cleanup.sh all       # Everything + remove test-run directories
+```
+
+### Rule 7: Observe, Don't Guess
+If a command fails, do not retry blindly. Read the relevant logs:
+```bash
+# Local broker logs
+cat "$TEST_RUN/logs/broker_6650.log" | tail -50
+
+# Docker container logs
+docker logs danube-broker1 --tail 50
+
+# Kubernetes pod logs
+kubectl logs danube-core-broker-0 -n danube --tail 50
+```
+
+### Rule 8: Use the Config System
+Never hardcode broker configuration. Always:
+1. Copy `configs/default.yml` to `$TEST_RUN/danube_broker.yml`
+2. Read `configs/flavors/SKILL.md` for the scenario-specific deltas
+3. Apply only the documented changes to the copied config
+4. Reference the modified config from the setup method
+
+Read `configs/SKILL.md` for the full workflow.
+
+### Rule 9: Scenarios Are Independent
 **Scenarios are independent of each other.** There are no dependencies between scenarios — only infrastructure can be shared. The user may run multiple scenarios on the same `$TEST_RUN`:
 
 ```text
@@ -151,8 +215,6 @@ Infrastructure (runs/test_YYYYMMDD_HHMMSS/)
 ```
 
 The AI must check each scenario's **Compatible Infrastructure** table against the current running setup before executing.
-
-**Scenarios never tear down infrastructure automatically.** They only clean up their own resources (e.g., topics they created). The user decides when to tear down — see `setups/SKILL.md` → **Cleanup**.
 
 ## Repository Structure
 
@@ -212,66 +274,9 @@ danube-agent-skills/
         ├── logs/               # Broker logs
         └── scenarios/          # Scenario outputs
             └── core-messaging/ # Scripts and logs from running a scenario
+                ├── main.go     # Test script (or .py, .rs, .java)
+                └── output.log  # Captured test output (created by tee)
 ```
-
-
-## Execution Rules
-
-These rules apply to ALL AI agents using this repository:
-
-### Rule 1: Scenarios First, Infrastructure Second
-Always present the available scenarios to the user before asking about infrastructure. The scenario determines what infrastructure is needed, not the other way around.
-
-### Rule 2: Always Ask Before Setting Up Infrastructure
-Do not spin up Docker containers, start brokers, or download binaries without telling the user what you are about to do and confirming. Infrastructure decisions should be explicit.
-
-### Rule 3: Check Before Act
-Before running any setup, run the prerequisites check script:
-```bash
-./scripts/check_prereqs.sh binary   # for local binary setup
-./scripts/check_prereqs.sh source   # for local source setup
-./scripts/check_prereqs.sh docker   # for Docker Compose setup
-./scripts/check_prereqs.sh k8s      # for Kubernetes setup
-```
-This checks required tools, port availability, and existing Danube processes in one command.
-
-### Rule 4: Use the Setup Scripts
-**Do not start brokers manually with individual commands.** Always use the setup scripts from `scripts/`. They handle directory creation, binary download, config copying, broker startup, readiness checks, and verification — all in one shot.
-
-### Rule 5: Report Progress
-Tell the user what you are doing at each major step. Do not run 20 commands in silence.
-
-### Rule 6: Teardown Is Mandatory
-If a scenario fails midway, still run cleanup. Port conflicts and orphaned containers from failed runs will break subsequent attempts.
-```bash
-./scripts/cleanup.sh binary    # Local binary processes
-./scripts/cleanup.sh source    # Source-built processes
-./scripts/cleanup.sh docker    # Docker Compose services
-./scripts/cleanup.sh k8s       # Kubernetes deployment
-./scripts/cleanup.sh all       # Everything + remove test-run directories
-```
-
-### Rule 7: Observe, Don't Guess
-If a command fails, do not retry blindly. Read the relevant logs:
-```bash
-# Local broker logs
-cat "$TEST_RUN/logs/broker_6650.log" | tail -50
-
-# Docker container logs
-docker logs danube-broker1 --tail 50
-
-# Kubernetes pod logs
-kubectl logs danube-core-broker-0 -n danube --tail 50
-```
-
-### Rule 8: Use the Config System
-Never hardcode broker configuration. Always:
-1. Copy `configs/default.yml` to `$TEST_RUN/danube_broker.yml`
-2. Read `configs/flavors/SKILL.md` for the scenario-specific deltas
-3. Apply only the documented changes to the copied config
-4. Reference the modified config from the setup method
-
-Read `configs/SKILL.md` for the full workflow.
 
 ## Port Allocation Scheme
 

@@ -39,7 +39,6 @@ All tests work on standalone. Reconnection failover is more meaningful with Shar
 | "poison", "failure policy", "block", "drop" | **Failure Policies** — test block (stops progress) vs drop (skips message) vs dead-letter (routes to DLQ) |
 | "dead letter", "dlq", "dead-letter queue" | **Dead Letter Queue** — poison message routed to DLQ with metadata |
 | "reconnect", "disconnect", "failover" | **Consumer Reconnection** — consumer disconnects, pending messages resent to another consumer |
-| "all", "everything" | **All flows** in sequence |
 | *(unclear)* | Default: **Basic Reliable** |
 
 ### 2. Tool or Client Language?

@@ -39,7 +39,6 @@ Key filtering and poison handling work on standalone. Partitioned Key-Shared ben
 | "poison", "nack", "failure", "block", "drop" | **Poison Handling** — NACK exhaustion with block/drop policies on Key-Shared |
 | "mixed", "filtered + unfiltered" | **Mixed Filters** — one consumer with filter, one without, verify routing |
 | "churn", "join", "consumer join" | **Consumer Churn** — consumer joins Key-Shared subscription mid-traffic |
-| "all", "everything" | **All flows** in sequence |
 | *(unclear)* | Default: **Key Filtering** |
 
 ### 2. Tool or Client Language?

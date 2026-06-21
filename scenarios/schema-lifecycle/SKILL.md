@@ -39,7 +39,6 @@ All tests work on standalone. Schema registry is broker-local, no cluster needed
 | "compatibility", "backward", "forward", "evolution" | **Compatibility** — test backward/forward/full/none modes with schema changes |
 | "version", "pin", "minimum" | **Version Selection** — pin producer to specific version, test minimum version |
 | "topic schema", "first producer", "schema locking" | **Topic Schema Config** — first producer sets schema, second with different schema fails |
-| "all", "full lifecycle" | **All flows** in sequence |
 | *(unclear)* | Default: **Registration + Validation** |
 
 ### 2. Schema type?
