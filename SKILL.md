@@ -49,22 +49,23 @@ Show the user what's available, organized by category. The user picks one or mor
   Glob key filtering, partitioned key-shared, poison message handling with failure policies.
   *Triggers: "key filtering", "glob filter", "poison message handling", "key-shared with partitions"*
 
-#### Operational (for platform teams / admins) — future
+#### Operational (for platform teams / admins)
 
-- **Topic Migration** *(not implemented)*
-  Reliable topic move between brokers, offset continuity, zero message loss.
+- **Broker Scaling & Rebalancing** (`scenarios/broker-scaling/SKILL.md`):
+  Scale up/down, Raft membership changes, rebalancing, reliable topic move.
+  *Triggers: "scale up", "add broker", "rebalance", "remove node", "topic move", "offset continuity"*
 
-- **Broker Scaling** *(not implemented)*
-  Scale up/down, Raft membership changes, rebalancing.
+- **Cluster Health & Broker Restart** (`scenarios/cluster-health/SKILL.md`):
+  Follower restart, leader restart with re-election, broker failover, health checks.
+  *Triggers: "broker restart", "failover", "re-election", "cluster health", "diagnostics"*
 
-- **Security RBAC** *(not implemented)*
-  TLS, JWT tokens, RBAC roles and bindings.
+- **Security & RBAC** (`scenarios/security-rbac/SKILL.md`):
+  TLS certificates, JWT tokens, RBAC roles and bindings, PermissionDenied enforcement.
+  *Triggers: "security", "TLS", "tokens", "RBAC", "roles", "permissions"*
 
-- **Edge MQTT** *(not implemented)*
-  MQTT ingestion via edge broker, store-and-forward.
-
-- **Cluster Health** *(not implemented)*
-  Health checks, metrics, diagnostics under failure.
+- **Edge MQTT Replication** (`scenarios/edge-mqtt/SKILL.md`):
+  MQTT ingestion via edge broker, schema validation, topic mapping, store-and-forward.
+  *Triggers: "edge", "MQTT", "IoT", "gateway", "store-and-forward"*
 
 #### Infrastructure Only
 
@@ -229,7 +230,11 @@ danube-agent-skills/
 │   ├── subscription-patterns/SKILL.md  # Fan-out vs queue, consumer churn
 │   ├── reliable-delivery/SKILL.md      # NACK, ack timeout, failure policies, DLQ
 │   ├── schema-lifecycle/SKILL.md       # Registration, compatibility, version selection
-│   └── key-shared-advanced/SKILL.md    # Key filtering, partitioned key-shared, poison handling
+│   ├── key-shared-advanced/SKILL.md    # Key filtering, partitioned key-shared, poison handling
+│   ├── broker-scaling/SKILL.md         # Scale up/down, rebalance, reliable topic move
+│   ├── cluster-health/SKILL.md         # Broker restart, failover, re-election
+│   ├── security-rbac/SKILL.md          # TLS, tokens, RBAC roles, PermissionDenied
+│   └── edge-mqtt/SKILL.md              # MQTT gateway, schema validation, store-and-forward
 │
 ├── setups/                     # HOW to run Danube (infrastructure)
 │   ├── SKILL.md                # Overview of all setup methods
