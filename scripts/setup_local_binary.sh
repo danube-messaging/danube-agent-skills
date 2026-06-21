@@ -238,6 +238,6 @@ echo "  Running brokers:"
 pgrep -la danube-broker | sed 's/^/    /'
 echo ""
 echo "  To clean up:"
-echo "    pkill -f danube-broker"
-echo "    rm -rf $TEST_RUN"
+echo "    ./scripts/cleanup.sh binary"
+echo "    rm -rf $TEST_RUN  # optional: remove test-run data"
 echo ""

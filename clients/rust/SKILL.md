@@ -392,7 +392,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Reference Examples
 
-Working examples in the Danube source repository at `/danube-client/examples/`:
+Working examples in the [danube repository](https://github.com/danube-messaging/danube/tree/main/danube-client/examples):
 - `simple_producer_consumer.rs` — basic produce/consume
 - `json_producer.rs` / `json_consumer.rs` — JSON schema
 - `avro_producer.rs` / `avro_consumer.rs` — Avro schema

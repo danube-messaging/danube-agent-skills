@@ -149,7 +149,15 @@ Routes poisoned messages to a separate DLQ topic:
 1. Create main topic + DLQ topic (both reliable)
 2. Set failure policy with `--poison-policy dead_letter --dead-letter-topic /default/reliable-test-dlq`
 3. Send message, consumer NACKs it
-4. Verify: message appears on DLQ with metadata attributes (`x-original-topic`, `x-original-subscription`, `x-poison-policy`, `x-failure-reason`)
+4. Verify: message appears on DLQ with these metadata attributes:
+   - `x-original-topic` — source topic name (e.g., `/default/reliable-test`)
+   - `x-original-subscription` — subscription that NACKed the message
+   - `x-poison-policy` — `dead_letter`
+   - `x-failure-reason` — the reason string passed in the NACK call
+   - `x-original-broker-addr` — broker address that handled the message
+   - `x-original-producer-id` — ID of the producer that sent the message
+   - `x-original-topic-offset` — offset of the message on the original topic
+   - `x-delivery-attempt` — number of delivery attempts before DLQ routing
 5. Verify: main subscription continues with next message
 
 ```bash

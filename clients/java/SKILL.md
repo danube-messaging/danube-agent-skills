@@ -402,7 +402,7 @@ public class SimpleProducerConsumer {
 
 ## Reference Examples
 
-Working examples in the danube-java repository at `/examples/`:
+Working examples in the [danube-java repository](https://github.com/danube-messaging/danube-java/tree/main/examples):
 - `SimpleProducerConsumer.java` — basic produce/consume
 - `JsonProducer.java` / `JsonConsumer.java` — JSON schema
 - `KeySharedProducer.java` / `KeySharedConsumer.java` — Key-Shared subscription

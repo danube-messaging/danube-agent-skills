@@ -150,7 +150,7 @@ if err != nil {
 for msg := range stream {
     payload := string(msg.GetPayload())
     fmt.Printf("Received: %s\n", payload)
-    consumer.Ack(ctx, msg)
+    _, _ = consumer.Ack(ctx, msg)
 }
 ```
 
@@ -180,18 +180,22 @@ for msg := range stream {
         fmt.Printf("  %s: %s\n", key, value)
     }
 
-    consumer.Ack(ctx, msg)
+    _, _ = consumer.Ack(ctx, msg)
 }
 ```
 
 ### NACK with Retry
 
+> **API Note:** `Nack` takes pointer arguments: `delayMs *uint64, reason *string`. Use helper variables.
+
 ```go
 for msg := range stream {
     if err := process(msg); err != nil {
-        consumer.Nack(ctx, msg, 1000, fmt.Sprintf("processing failed: %v", err))
+        delayMs := uint64(1000)
+        reason := fmt.Sprintf("processing failed: %v", err)
+        _, _ = consumer.Nack(ctx, msg, &delayMs, &reason)
     } else {
-        consumer.Ack(ctx, msg)
+        _, _ = consumer.Ack(ctx, msg)
     }
 }
 ```
@@ -239,7 +243,7 @@ stream, _ := consumer.Receive(ctx)
 for msg := range stream {
     fmt.Printf("key=%s payload=%s\n",
         msg.GetRoutingKey(), string(msg.GetPayload()))
-    consumer.Ack(ctx, msg)
+    _, _ = consumer.Ack(ctx, msg)
 }
 ```
 
@@ -362,14 +366,14 @@ func main() {
     stream, _ := consumer.Receive(ctx)
     for msg := range stream {
         fmt.Printf("Received: %s\n", string(msg.GetPayload()))
-        consumer.Ack(ctx, msg)
+        _, _ = consumer.Ack(ctx, msg)
     }
 }
 ```
 
 ## Reference Examples
 
-Working examples in the danube-go repository at `/examples/`:
+Working examples in the [danube-go repository](https://github.com/danube-messaging/danube-go/tree/main/examples):
 - `schema_string/` — basic produce/consume
 - `schema_json/` — JSON schema
 - `key_shared/` — Key-Shared subscription

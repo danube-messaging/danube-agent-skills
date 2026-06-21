@@ -364,7 +364,7 @@ if __name__ == "__main__":
 
 ## Reference Examples
 
-Working examples in the danube-py repository at `/examples/`:
+Working examples in the [danube-py repository](https://github.com/danube-messaging/danube-py/tree/main/examples):
 - `simple_producer_consumer.py` — basic produce/consume
 - `json_producer.py` / `json_consumer.py` — JSON schema
 - `avro_producer.py` / `avro_consumer.py` — Avro schema
