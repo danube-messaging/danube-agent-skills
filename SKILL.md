@@ -28,29 +28,48 @@ Show the user what's available, organized by category. The user picks one or mor
 
 #### User Functionality (for application developers)
 
-| Scenario | What You're Testing | Difficulty |
-|----------|-------------------|-----------|
-| **Core Messaging** | Basic produce/consume — pick subscription type, reliability, partitions, schema | Easy |
-| **Subscription Patterns** | Fan-out (broadcast) vs Queue (work distribution), consumer churn | Easy |
-| **Reliable Delivery** | NACK redelivery, ack timeout, failure policies (block/drop/dead-letter), reconnection | Intermediate |
-| **Schema Lifecycle** | Schema registration, validation, compatibility modes, version selection, evolution | Intermediate |
-| **Key-Shared Advanced** | Glob key filtering, partitioned key-shared, poison message handling | Intermediate |
+- **Core Messaging** (`scenarios/core-messaging/SKILL.md`):
+  Basic produce/consume — pick subscription type, reliability, partitions, schema.
+  *Triggers: "test subscriptions", "send messages", "try schemas", "write a Python producer", "send messages with schema"*
+
+- **Subscription Patterns** (`scenarios/subscription-patterns/SKILL.md`):
+  Fan-out (broadcast) vs Queue (work distribution), consumer churn.
+  *Triggers: "fan-out vs queue", "broadcast", "round-robin", "load balance", "consumer churn"*
+
+- **Reliable Delivery** (`scenarios/reliable-delivery/SKILL.md`):
+  NACK redelivery, ack timeout, failure policies (block/drop/dead-letter), consumer reconnection.
+  *Triggers: "test reliable delivery", "NACK", "redelivery", "dead letter queue", "at-least-once"*
+
+- **Schema Lifecycle** (`scenarios/schema-lifecycle/SKILL.md`):
+  Schema registration, validation, compatibility modes (backward/forward/full/none), version selection, evolution.
+  *Triggers: "test schema validation", "schema compatibility", "schema evolution", "schema registry"*
+
+- **Key-Shared Advanced** (`scenarios/key-shared-advanced/SKILL.md`):
+  Glob key filtering, partitioned key-shared, poison message handling with failure policies.
+  *Triggers: "key filtering", "glob filter", "poison message handling", "key-shared with partitions"*
 
 #### Operational (for platform teams / admins) — future
 
-| Scenario | What You're Testing | Status |
-|----------|-------------------|--------|
-| Topic Migration | Reliable topic move between brokers, offset continuity | Not implemented |
-| Broker Scaling | Scale up/down, Raft membership changes | Not implemented |
-| Security RBAC | TLS, JWT tokens, RBAC roles and bindings | Not implemented |
-| Edge MQTT | MQTT ingestion via edge broker, store-and-forward | Not implemented |
-| Cluster Health | Health checks, metrics, diagnostics under failure | Not implemented |
+- **Topic Migration** *(not implemented)*
+  Reliable topic move between brokers, offset continuity, zero message loss.
+
+- **Broker Scaling** *(not implemented)*
+  Scale up/down, Raft membership changes, rebalancing.
+
+- **Security RBAC** *(not implemented)*
+  TLS, JWT tokens, RBAC roles and bindings.
+
+- **Edge MQTT** *(not implemented)*
+  MQTT ingestion via edge broker, store-and-forward.
+
+- **Cluster Health** *(not implemented)*
+  Health checks, metrics, diagnostics under failure.
 
 #### Infrastructure Only
 
-| Scenario | What You're Doing |
-|----------|------------------|
-| **Bring Up Cluster** | Get a running Danube (standalone or cluster) for ad-hoc use — no automated test |
+- **Bring Up Cluster** (`scenarios/bring-up-cluster/SKILL.md`):
+  Get a running Danube (standalone or cluster) for ad-hoc use — no automated test.
+  *Triggers: "I want to try Danube", "start Danube", "run a cluster", "run a quick test", "I'm developing Danube", "deploy to Kubernetes"*
 
 ### Step 2 — Configure the Scenario
 
@@ -100,7 +119,21 @@ If the user selected multiple scenarios, verify all are compatible with the chos
 
 ### Step 4 — Set Up Infrastructure
 
-Run `scenarios/bring-up-cluster/` to deploy Danube, or verify an existing cluster is running. See `setups/SKILL.md` for details on the `$TEST_RUN` directory structure.
+Run the prereq check, then the setup script. **Do not run individual commands manually — the scripts handle everything** (download, start, readiness check, verification).
+
+```bash
+# 1. Check prerequisites
+./scripts/check_prereqs.sh binary   # or: source, docker, k8s
+
+# 2. Run the setup script
+./scripts/setup_local_binary.sh standalone v0.15.0   # standalone broker
+./scripts/setup_local_binary.sh cluster v0.15.0 3    # 3-broker cluster
+./scripts/setup_docker_compose.sh                    # Docker Compose
+./scripts/setup_local_source.sh standalone            # build from source
+./scripts/setup_kubernetes.sh                         # Kubernetes
+```
+
+The script creates `$TEST_RUN`, downloads binaries (if needed), starts brokers, waits for readiness, and prints a summary. Read `setups/SKILL.md` for details on the `$TEST_RUN` directory structure.
 
 ### Steps 5–6 — Execute & Verify
 
@@ -143,7 +176,8 @@ danube-agent-skills/
 │   ├── docker-compose/SKILL.md # Run via Docker Compose
 │   └── kubernetes/SKILL.md     # Deploy to Kubernetes
 │
-├── scripts/                    # Executable setup scripts
+├── scripts/                    # Executable setup & utility scripts
+│   ├── check_prereqs.sh        # Verify prerequisites (tools, ports, processes)
 │   ├── setup_local_binary.sh   # Download binaries + start brokers
 │   ├── setup_local_source.sh   # Build from source + start brokers
 │   ├── setup_docker_compose.sh # Docker Compose setup
@@ -180,27 +214,6 @@ danube-agent-skills/
             └── core-messaging/ # Scripts and logs from running a scenario
 ```
 
-## Quick Start: What to Read for Common Tasks
-
-| User Goal | Scenario |
-|-----------|----------|
-| "I want to try Danube" | `scenarios/bring-up-cluster/` → AI picks setup method |
-| "Run a quick test" | `scenarios/bring-up-cluster/` → standalone binary |
-| "Test subscriptions" | `scenarios/core-messaging/` → AI asks which type |
-| "Fan-out vs queue" | `scenarios/subscription-patterns/` → compare both patterns |
-| "Consumer churn" | `scenarios/subscription-patterns/` → churn test |
-| "Test reliable delivery" | `scenarios/reliable-delivery/` → NACK, timeout, policies |
-| "Dead letter queue" | `scenarios/reliable-delivery/` → DLQ flow |
-| "Test schema validation" | `scenarios/schema-lifecycle/` → registration + validation |
-| "Schema compatibility" | `scenarios/schema-lifecycle/` → backward/forward/full |
-| "Key filtering" | `scenarios/key-shared-advanced/` → glob filter test |
-| "Poison message handling" | `scenarios/key-shared-advanced/` → block/drop policies |
-| "Send messages with schema" | `scenarios/core-messaging/` → schema=yes |
-| "Write a Python producer" | `scenarios/core-messaging/` → Python client |
-| "I'm developing Danube" | `scenarios/bring-up-cluster/` → local source setup |
-| "Deploy to Kubernetes" | `scenarios/bring-up-cluster/` → kubernetes setup |
-
-
 
 ## Execution Rules
 
@@ -213,26 +226,17 @@ Always present the available scenarios to the user before asking about infrastru
 Do not spin up Docker containers, start brokers, or download binaries without telling the user what you are about to do and confirming. Infrastructure decisions should be explicit.
 
 ### Rule 3: Check Before Act
-Before running any setup, verify the environment:
+Before running any setup, run the prerequisites check script:
 ```bash
-# Check required tools
-which danube-admin && danube-admin --version
-which docker && docker --version
-docker compose version
-
-# Check port availability
-ss -lntp | grep -E '(6650|6651|6652|50051|50052|50053|7650|7651|7652)'
-
-# Check for existing Danube processes
-pgrep -la danube-broker
-docker ps --filter "name=danube"
+./scripts/check_prereqs.sh binary   # for local binary setup
+./scripts/check_prereqs.sh source   # for local source setup
+./scripts/check_prereqs.sh docker   # for Docker Compose setup
+./scripts/check_prereqs.sh k8s      # for Kubernetes setup
 ```
+This checks required tools, port availability, and existing Danube processes in one command.
 
-### Rule 4: Wait for Readiness
-A process starting does not mean it is ready. After starting brokers:
-- **Local brokers**: Poll with `danube-admin cluster status` until leader is elected
-- **Docker Compose**: Wait for `docker compose ps` to show `Up (healthy)` for all brokers
-- **Kubernetes**: Wait for `kubectl get pods -n danube` to show `Running` and `1/1 READY`
+### Rule 4: Use the Setup Scripts
+**Do not start brokers manually with individual commands.** Always use the setup scripts from `scripts/`. They handle directory creation, binary download, config copying, broker startup, readiness checks, and verification — all in one shot.
 
 ### Rule 5: Report Progress
 Tell the user what you are doing at each major step. Do not run 20 commands in silence.

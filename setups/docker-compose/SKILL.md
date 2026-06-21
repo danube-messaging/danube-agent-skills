@@ -9,14 +9,15 @@ description: "Run Danube via Docker Compose with published container images. Use
 
 Run Danube via Docker Compose using published container images. This is the recommended setup for most testing scenarios — it provides a multi-broker cluster with Prometheus, CLI, and optional services (MinIO, Admin UI) with a single command.
 
-## Prerequisites (verify before running)
+## Prerequisites
 
-Before running the setup script, the AI must confirm these prerequisites:
+Run the prerequisites check before setup:
 
-1. **Verify Docker is installed and running:** `docker info` must succeed. Requires Docker Engine 20.10+.
-2. **Verify Docker Compose V2 is installed:** `docker compose version` must succeed. Use `docker compose` (space), not `docker-compose` (hyphen).
-3. **Verify `wget` is installed:** required to download compose files from GitHub.
-4. **Check for port conflicts:** `ss -lntp | grep -E '(6650|6651|6652|50051|50052|50053)'`. If ports are in use, run `./scripts/cleanup.sh docker` first.
+```bash
+./scripts/check_prereqs.sh docker
+```
+
+This verifies Docker, Docker Compose V2, port availability, and no conflicting Danube containers.
 
 ## How to Run
 

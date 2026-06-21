@@ -9,13 +9,15 @@ description: "Download pre-built Danube binaries and run brokers on the host. Us
 
 Download pre-built Danube binaries from GitHub releases and run brokers directly on the host machine. The simplest setup — no Docker, no build tools, just download and run.
 
-## Prerequisites (verify before running)
+## Prerequisites
 
-Before running the setup script, the AI must confirm these prerequisites:
+Run the prerequisites check before setup:
 
-1. **Verify `curl` or `wget` is installed:** required to download binaries from GitHub releases.
-2. **Verify `tar` is installed:** required to extract the downloaded archives.
-3. **Check for port conflicts:** `ss -lntp | grep -E '(6650|6651|6652|50051|50052|50053)'`. If ports are in use, run `./scripts/cleanup.sh binary` first.
+```bash
+./scripts/check_prereqs.sh binary
+```
+
+This verifies `curl`, `tar`, port availability, and no conflicting Danube processes.
 
 ## How to Run
 

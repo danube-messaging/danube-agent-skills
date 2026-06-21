@@ -9,13 +9,15 @@ description: "Deploy Danube to Kubernetes using Helm charts. Use when the user w
 
 Deploy Danube to a Kubernetes cluster using Helm charts. This skill deploys Danube into an **existing** Kubernetes cluster — it does not create the cluster itself.
 
-## Prerequisites (verify before running)
+## Prerequisites
 
-Before running the setup script, the AI must confirm these prerequisites:
+Run the prerequisites check before setup:
 
-1. **Verify `kubectl` is installed and connected to a cluster:** `kubectl version` must show both Client and Server versions. The user is responsible for providing a running Kubernetes cluster (Kind, EKS, GKE, AKS, etc.).
-2. **Verify `helm` 3.0+ is installed:** `helm version` must succeed.
-3. **Check for existing Danube namespace:** `kubectl get namespace danube 2>/dev/null`. If it exists, the user may want to clean up first.
+```bash
+./scripts/check_prereqs.sh k8s
+```
+
+This verifies `kubectl`, `helm`, Kubernetes cluster connectivity, and checks for existing Danube namespace.
 
 ## How to Run
 

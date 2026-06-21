@@ -9,13 +9,17 @@ description: "Build Danube from source and run brokers locally via Makefile. Use
 
 Build Danube from the source repository and run brokers locally. This setup is for users who are developing on the Danube codebase and want to test their local changes.
 
-## Prerequisites (verify before running)
+## Prerequisites
 
-Before running the setup script, the AI must confirm these prerequisites:
+Run the prerequisites check before setup:
 
-1. **Ask the user for the Danube source repository path.** The user must have the repo cloned locally. Do not assume or hardcode any path.
-2. **Verify the Rust toolchain is installed:** `cargo --version` and `rustc --version`. If not installed, direct the user to [rustup.rs](https://rustup.rs/).
-3. **Verify `make` is installed:** `which make`. Required for building and managing brokers.
+```bash
+./scripts/check_prereqs.sh source
+```
+
+This verifies Rust toolchain (`cargo`, `rustc`), `make`, Danube source repo location, and port availability.
+
+> **Note:** The AI must also ask the user for the Danube source repository path. Do not assume or hardcode any path.
 
 ## How to Run
 
