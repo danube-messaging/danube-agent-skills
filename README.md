@@ -26,7 +26,7 @@ Open this folder in any AI-powered IDE or terminal:
 - [Claude Code](https://docs.anthropic.com/en/docs/build-with-claude/claude-code/overview) / [Antigravity](https://deepmind.google/)
 - [Cursor](https://cursor.sh/) / [Windsurf](https://codeium.com/windsurf)
 - [VS Code + Copilot](https://code.visualstudio.com/docs/copilot/overview)
-- Or any agent that reads `SKILL.md` files
+- Or any agent that reads `AGENTS.md` / `SKILL.md` files
 
 ### 3. Tell the AI What You Want to Test
 
@@ -46,7 +46,7 @@ Just type a prompt. Here are some examples:
 
 > *"Just bring up a Danube cluster so I can play with it"*
 
-The AI reads the `SKILL.md` files, asks you a few clarifying questions (what to test, which setup method), and then executes everything step by step.
+The AI reads the `AGENTS.md` and `SKILL.md` files, asks you a few clarifying questions (what to test, which setup method), and then executes everything step by step.
 
 ### You Don't Need to Download Anything
 
@@ -107,7 +107,7 @@ The AI will ask which setup method to use. Pick whichever fits your environment:
 
 ```text
 danube-agent-skills/
-├── SKILL.md              # AI entry point — routes to the right scenario
+├── AGENTS.md             # AI entry point — routes to the right scenario
 ├── scenarios/            # Test workflows (one per feature area)
 │   ├── core-messaging/
 │   ├── subscription-patterns/

@@ -221,7 +221,7 @@ The AI must check each scenario's **Compatible Infrastructure** table against th
 
 ```text
 danube-agent-skills/
-├── SKILL.md                    ← You are here (read this first)
+├── AGENTS.md                    ← You are here (read this first)
 ├── README.md                   # Human-readable overview
 │
 ├── scenarios/                  # START HERE — what to test (each has a SKILL.md)
