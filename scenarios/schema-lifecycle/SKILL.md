@@ -32,14 +32,17 @@ All tests work on standalone. Schema registry is broker-local, no cluster needed
 
 ### 1. Which schema aspect to test?
 
-| User says | Test Flow |
-|-----------|-----------|
-| "register", "basic", "simple" | **Registration** — register JSON/Avro schemas, verify producer/consumer with schema |
-| "validation", "enforce", "reject" | **Validation** — send valid/invalid payloads, verify broker rejects invalid |
-| "compatibility", "backward", "forward", "evolution" | **Compatibility** — test backward/forward/full/none modes with schema changes |
-| "version", "pin", "minimum" | **Version Selection** — pin producer to specific version, test minimum version |
-| "topic schema", "first producer", "schema locking" | **Topic Schema Config** — first producer sets schema, second with different schema fails |
-| *(unclear)* | Default: **Registration + Validation** |
+Present these options to the user **exactly as listed**:
+
+1. **Registration & Validation**: Register a JSON/Avro schema, create a topic, produce with the schema subject, and verify messages carry schema metadata. Tests that schema registration, lookup, and producer-side schema attachment work correctly.
+
+2. **Compatibility Modes**: Test schema evolution under backward, forward, full, or none compatibility. Register multiple schema versions, verify compatible changes succeed and incompatible changes are rejected by the registry.
+
+3. **Version Selection**: Pin producers to specific schema versions or set a minimum version. Verify each producer uses the correct version and that invalid version requests fail. Requires a client library.
+
+4. **Topic Schema Config**: Verify that the first producer on a topic locks its schema subject. A second producer with a different schema subject is rejected, while producers without a schema or with the same subject succeed.
+
+Each aspect maps to the corresponding `Step 2x` in Execution Steps below.
 
 ### 2. Schema type?
 
@@ -113,15 +116,14 @@ Generate a script that:
 
 ### Step 2b: Compatibility Modes (if selected)
 
-Test schema evolution under different compatibility modes. Ask which mode:
+Test schema evolution under different compatibility modes. Ask the user which mode:
 
-| User says | Mode | Rule |
-|-----------|------|------|
-| "backward" | **BACKWARD** | New schema can read old data (add optional fields OK, remove required fails) |
-| "forward" | **FORWARD** | Old schema can read new data (remove optional fields OK, add required fails) |
-| "full" | **FULL** | Both backward and forward (strictest) |
-| "none" | **NONE** | Any change allowed (for rapid iteration) |
-| *(unclear)* | Default: test **BACKWARD** |
+| Mode | Rule |
+|------|------|
+| **BACKWARD** | New schema can read old data (add optional fields OK, remove required fails) |
+| **FORWARD** | Old schema can read new data (remove optional fields OK, add required fails) |
+| **FULL** | Both backward and forward (strictest) |
+| **NONE** | Any change allowed (for rapid iteration) |
 
 #### Backward Compatibility Flow
 
@@ -143,6 +145,14 @@ danube-cli schema register compat-test \
 danube-cli schema check-compatibility compat-test \
   --schema-type json_schema \
   --schema '{"type":"object","properties":{"user_id":{"type":"string"}},"required":["user_id"]}'
+
+# 5. Multi-version evolution — register v3 (add another optional field)
+danube-cli schema register compat-test \
+  --schema-type json_schema \
+  --schema '{"type":"object","properties":{"user_id":{"type":"string"},"event":{"type":"string"},"metadata":{"type":"string"},"phone":{"type":"string"}},"required":["user_id","event"]}'
+
+# 6. Verify all versions
+danube-cli schema versions compat-test
 ```
 
 #### Forward Compatibility Flow
@@ -181,32 +191,7 @@ Requires client library. Tests producer version pinning:
 5. Producer D: pin to invalid version → fails
 6. Verify: each producer uses the correct schema version
 
-### Step 2d: Multi-Version Evolution (if selected)
-
-```bash
-# Register v1
-danube-cli schema register evolution-test \
-  --schema-type json_schema \
-  --schema '{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}'
-
-# Set backward compatibility
-danube-cli schema set-compatibility evolution-test --mode backward
-
-# Register v2 (add optional email)
-danube-cli schema register evolution-test \
-  --schema-type json_schema \
-  --schema '{"type":"object","properties":{"name":{"type":"string"},"email":{"type":"string"}},"required":["name"]}'
-
-# Register v3 (add optional phone)
-danube-cli schema register evolution-test \
-  --schema-type json_schema \
-  --schema '{"type":"object","properties":{"name":{"type":"string"},"email":{"type":"string"},"phone":{"type":"string"}},"required":["name"]}'
-
-# Verify all 3 versions
-danube-cli schema versions evolution-test
-```
-
-### Step 2e: Topic Schema Config (if selected)
+### Step 2d: Topic Schema Config (if selected)
 
 Tests that the first producer on a topic locks the schema:
 
@@ -220,15 +205,13 @@ Tests that the first producer on a topic locks the schema:
 
 | Test | Pass Criteria |
 |------|--------------|
-| **Registration** | Schema registered, versions listed, producer/consumer work with schema |
-| **Validation** | Valid payloads accepted, consumer receives schema metadata |
-| **Backward Compat** | Add optional field succeeds, remove required field fails |
+| **Registration & Validation** | Schema registered, versions listed, producer/consumer work with schema |
+| **Backward Compat** | Add optional field succeeds, remove required field fails, multi-version evolution works |
 | **Forward Compat** | Remove optional field succeeds, add required field fails |
 | **Full Compat** | Only non-breaking changes in both directions |
 | **None Mode** | Any schema change accepted |
-| **Version Pin** | Producer uses exact version specified |
-| **Min Version** | Producer uses latest version ≥ minimum |
-| **Topic Lock** | Second producer with different subject rejected |
+| **Version Selection** | Producer uses exact version specified, min version resolves correctly, invalid version rejected |
+| **Topic Schema Config** | Second producer with different subject rejected, same subject or no subject succeeds |
 
 ```bash
 # Inspect schema

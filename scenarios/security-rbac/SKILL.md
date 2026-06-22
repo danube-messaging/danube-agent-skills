@@ -29,13 +29,13 @@ Security tests work best on **standalone** — a single broker is sufficient to 
 
 ### 1. Which security aspect to test?
 
-| User says | Test Flow |
-|-----------|-----------|
-| "tls", "certificates", "encryption" | **TLS Setup** — generate certs, configure broker, verify TLS connectivity |
-| "token", "jwt", "authentication" | **Token Management** — create admin token, service account tokens, validate tokens |
-| "rbac", "roles", "permissions", "bindings" | **RBAC Enforcement** — create roles, bind to principals, verify authorized/unauthorized access |
-| "permission denied", "unauthorized", "block" | **Access Denial** — verify unauthorized operations fail with PermissionDenied |
-| *(unclear)* | Default: **RBAC Enforcement** |
+Present these options to the user **exactly as listed**:
+
+1. **Secure Cluster Setup**: Enable TLS encryption and JWT authentication on the broker. Generate certificates, create the bootstrap admin token, start the broker with a secure config, and verify connectivity. Uses the `setup_security.sh` script. Tests that the security infrastructure itself works.
+
+2. **RBAC Enforcement**: Create roles with specific permissions (produce, consume, operator), bind them to service accounts, and generate scoped tokens. Verify authorized operations succeed and unauthorized operations fail with `PermissionDenied` — including wrong namespace scope and unbound tokens.
+
+Each aspect maps to the corresponding `Step 2x` in Execution Steps below.
 
 ### 2. Tool or Client Language?
 
@@ -44,7 +44,20 @@ Security tests work best on **standalone** — a single broker is sufficient to 
 | "python", "rust", "go", "java" | **Client library** — needed to test authenticated produce/consume |
 | *(unclear)* | Default: **Python** |
 
-**Note:** Token and role management uses `danube-admin` CLI. Client libraries are needed to test authenticated produce/consume and PermissionDenied errors.
+**Note:** Token and role management uses `danube-admin` CLI. Client libraries are needed for RBAC Enforcement to test authenticated produce/consume and PermissionDenied errors.
+
+### AI Reference: Permission Types
+
+| Permission | Allows |
+|-----------|--------|
+| `Lookup` | Topic discovery |
+| `Produce` | Publish messages |
+| `Consume` | Subscribe and receive |
+| `ManageNamespace` | Create/delete namespaces |
+| `ManageTopic` | Create/delete topics |
+| `ManageSchema` | Register/delete schemas |
+| `ManageBroker` | Broker operations |
+| `ManageCluster` | Cluster membership changes |
 
 ## Predefined Scripts
 
@@ -68,7 +81,9 @@ This scenario ships with helper scripts in `scenarios/security-rbac/scripts/`:
 
 ## Execution Steps
 
-### Step 1: Generate Certificates and Configure Broker
+### Step 1: Set Up Secure Broker
+
+Both aspects require a broker with TLS and JWT auth enabled. This is always the first step.
 
 **Use the predefined script** (recommended):
 ```bash
@@ -102,9 +117,7 @@ cert/
   client-key.pem
 ```
 
-### Step 2: Configure Broker with Auth (if manual)
-
-Create a secure broker config by modifying `$TEST_RUN/danube_broker.yml`:
+Configure broker with auth by modifying `$TEST_RUN/danube_broker.yml`:
 
 ```yaml
 auth:
@@ -123,12 +136,10 @@ auth:
 
 Start the broker with the secure config.
 
-### Step 3a: TLS Setup (if selected)
+### Step 2a: Secure Cluster Setup (if selected)
 
-1. Generate certificates (Step 1)
-2. Configure broker with auth (Step 2)
-3. Start broker with secure config
-4. Verify TLS connectivity:
+Verify the security infrastructure works:
+
 ```bash
 # Create admin token (offline operation, no broker needed)
 export ADMIN_TOKEN=$(danube-admin security tokens create \
@@ -136,28 +147,25 @@ export ADMIN_TOKEN=$(danube-admin security tokens create \
 
 # Verify broker responds with the token
 DANUBE_ADMIN_TOKEN=$ADMIN_TOKEN danube-admin brokers list
-```
 
-### Step 3b: Token Management (if selected)
-
-```bash
-# 1. Create super-admin token
-export ADMIN_TOKEN=$(danube-admin security tokens create \
-  --subject admin --secret-key test-secret-key-for-e2e)
-
-# 2. Create service account tokens
+# Create and validate service account tokens
 export PRODUCER_TOKEN=$(danube-admin security tokens create \
   --subject payments-producer --secret-key test-secret-key-for-e2e)
 
 export CONSUMER_TOKEN=$(danube-admin security tokens create \
   --subject analytics-consumer --secret-key test-secret-key-for-e2e)
 
-# 3. Validate a token
+# Validate a token
 danube-admin security tokens validate \
   --token $PRODUCER_TOKEN --secret-key test-secret-key-for-e2e
 ```
 
-### Step 3c: RBAC Enforcement (if selected)
+Verify:
+- Broker starts with auth config (no errors in logs)
+- Admin commands work with token
+- Tokens created and validated successfully
+
+### Step 2b: RBAC Enforcement (if selected)
 
 **Use the predefined script** (recommended) — creates roles, tokens, and bindings in one shot:
 ```bash
@@ -172,8 +180,7 @@ The script creates:
 
 Or manually:
 
-1. Create tokens (Step 3b)
-2. Create roles:
+1. Create roles:
 ```bash
 # Producer role: discover topics and publish
 danube-admin security roles create producer \
@@ -188,7 +195,7 @@ danube-admin security roles create operator \
   --permissions ManageNamespace,ManageTopic,ManageSchema,Lookup
 ```
 
-3. Create bindings:
+2. Create bindings:
 ```bash
 # Bind producer token to a namespace
 danube-admin security bindings create bind-payments-producer \
@@ -207,44 +214,28 @@ danube-admin security bindings create bind-analytics-consumer \
   --resource /default
 ```
 
-4. Test with a client library — generate a script that:
+3. Test with a client library — generate a script that:
    - Connects with `PRODUCER_TOKEN`, produces to `/default/security-test` → **should succeed**
    - Connects with `CONSUMER_TOKEN`, consumes from `/default/security-test` → **should succeed**
    - Connects with `CONSUMER_TOKEN`, tries to produce → **should fail with PermissionDenied**
    - Connects with `PRODUCER_TOKEN`, tries to consume → **should fail with PermissionDenied**
 
-### Step 3d: Access Denial (if selected)
+4. Test access denial with unbound token:
+   - Create a token with NO roles bound
+   - Attempt to produce → PermissionDenied
+   - Attempt to consume → PermissionDenied
 
-Focused test on PermissionDenied:
-
-1. Create a token with NO roles bound
-2. Attempt to produce → PermissionDenied
-3. Attempt to consume → PermissionDenied
-4. Create a role bound at namespace `/payments`
-5. Attempt to produce to `/default/test` → PermissionDenied (wrong namespace)
-6. Attempt to produce to `/payments/test` → should succeed
-
-**Permission reference:**
-
-| Permission | Allows |
-|-----------|--------|
-| `Lookup` | Topic discovery |
-| `Produce` | Publish messages |
-| `Consume` | Subscribe and receive |
-| `ManageNamespace` | Create/delete namespaces |
-| `ManageTopic` | Create/delete topics |
-| `ManageSchema` | Register/delete schemas |
-| `ManageBroker` | Broker operations |
-| `ManageCluster` | Cluster membership changes |
+5. Test wrong namespace scope:
+   - Create a role bound at namespace `/payments`
+   - Attempt to produce to `/default/test` → PermissionDenied (wrong namespace)
+   - Attempt to produce to `/payments/test` → should succeed
 
 ## Verification
 
 | Test | Pass Criteria |
 |------|--------------|
-| **TLS Setup** | Broker starts with auth config, admin commands work with token |
-| **Token Management** | Tokens created, validated, service accounts functional |
-| **RBAC Enforcement** | Authorized operations succeed, unauthorized operations fail with PermissionDenied |
-| **Access Denial** | Wrong namespace → denied, no role → denied, correct scope → allowed |
+| **Secure Cluster Setup** | Broker starts with TLS+JWT config, admin commands work with token, service tokens created and validated |
+| **RBAC Enforcement** | Authorized produce/consume succeeds, unauthorized operations fail with PermissionDenied, wrong namespace scope denied |
 
 ```bash
 # Key verification commands

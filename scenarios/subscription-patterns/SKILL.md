@@ -31,13 +31,15 @@ All tests work on standalone. Consumer churn tests benefit from but don't requir
 
 ### 1. Which pattern to test?
 
-| User says | Test Flow |
-|-----------|-----------|
-| "fan-out", "broadcast", "pub-sub", "every consumer gets all" | **Fan-out** — multiple unique Exclusive subscriptions, each receives ALL messages |
-| "queue", "work distribution", "round-robin", "load balance", "split" | **Queue** — multiple consumers on the SAME Shared subscription, messages split evenly |
-| "both", "compare", "side by side" | **Both** — run fan-out then queue, compare results |
-| "churn", "join", "leave", "dynamic consumers" | **Consumer Churn** — consumers join/leave mid-traffic, verify no message loss |
-| *(unclear)* | Default: **Both** (compare fan-out vs queue) |
+Present these options to the user **exactly as listed**:
+
+1. **Fan-out (Exclusive)**: Multiple consumers each create their own unique Exclusive subscription on the same topic. Every consumer receives ALL messages. Verify that each consumer gets the complete message set.
+
+2. **Queue (Shared)**: Multiple consumers share the same Shared subscription on a topic. Messages are distributed round-robin — each message goes to exactly one consumer. Verify even distribution and no duplicates.
+
+3. **Consumer Churn**: Consumers join and leave mid-traffic on a Shared subscription. Verify no messages are lost during consumer transitions and remaining consumers pick up the load. Tests subscription resilience under dynamic membership.
+
+Each aspect maps to the corresponding `Step 2x` in Execution Steps below.
 
 ### 2. Tool or Client Language?
 
@@ -75,7 +77,7 @@ All tests work on standalone. Consumer churn tests benefit from but don't requir
 danube-admin topics create /default/pattern-test
 ```
 
-### Step 2: Fan-Out Test (Pub-Sub)
+### Step 2a: Fan-out (Exclusive) (if selected)
 
 Each consumer uses a **unique subscription name** with `SubType::Exclusive`. Each consumer receives ALL messages.
 
@@ -108,7 +110,7 @@ Generate a script that:
 4. Collects per-consumer message counts
 5. Asserts: each consumer received ALL N messages
 
-### Step 3: Queue Test (Work Distribution)
+### Step 2b: Queue (Shared) (if selected)
 
 All consumers use the **same subscription name** with `SubType::Shared`. Messages are distributed round-robin.
 
@@ -133,7 +135,7 @@ Generate a script that:
 4. Collects per-consumer message counts
 5. Asserts: total received = N, each consumer received approximately N/3
 
-### Step 4: Consumer Churn Test (if selected)
+### Step 2c: Consumer Churn (if selected)
 
 Requires client library. Tests consumers joining mid-traffic:
 1. Start with 2 consumers on a Shared subscription

@@ -29,13 +29,13 @@ Edge tests require a **cluster** (the edge replicates to a cluster). The edge br
 
 ### 1. Which edge aspect to test?
 
-| User says | Test Flow |
-|-----------|-----------|
-| "basic", "replication", "pipeline" | **Full Pipeline** — MQTT publish → edge → cluster consumer, verify end-to-end |
-| "schema", "validation", "enforce" | **Schema Validation** — valid payload accepted, invalid payload dropped at edge |
-| "mapping", "wildcard", "attributes" | **Topic Mapping** — verify MQTT wildcard extraction into Danube message attributes |
-| "store and forward", "offline", "resilience" | **Store-and-Forward** — publish while cluster is down, verify replication after recovery |
-| *(unclear)* | Default: **Full Pipeline** |
+Present these options to the user **exactly as listed**:
+
+1. **Full Pipeline**: Run the predefined `test_mqtt_ingestion.py` script end-to-end. Tests valid payload acceptance, raw payload acceptance, schema enforcement (invalid payloads dropped at the edge), and full MQTT → edge → cluster consumer replication. Covers the entire edge pipeline in a single run.
+
+2. **Store-and-Forward**: Publish MQTT messages while the cluster is unavailable (brokers stopped), verify the edge accepts and stores them locally in its WAL. Restart the cluster and verify all buffered messages are replicated — no data loss during outage.
+
+Each aspect maps to the corresponding `Step 2x` in Execution Steps below.
 
 ### 2. MQTT client
 
@@ -143,40 +143,7 @@ This runs 4 tests:
 3. **Invalid Schema Payload** — publish invalid JSON (missing required "temperature") → PUBACK received but message dropped silently
 4. **Full Pipeline** — publish valid payload via MQTT, verify it arrives on cluster consumer via Danube client, verify invalid payloads did NOT leak to cluster
 
-### Step 2b: Schema Validation (if selected)
-
-Focus on edge-side validation behavior:
-
-1. Publish valid JSON to `device/sensor-1/telemetry`:
-```python
-import paho.mqtt.client as mqtt
-import json
-
-client = mqtt.Client("schema-test")
-client.connect("127.0.0.1", 1883)
-# Valid: has required "temperature" field
-client.publish("device/sensor-1/telemetry", json.dumps({"temperature": 25.5, "device_id": "s1"}), qos=1)
-```
-
-2. Publish invalid JSON (missing required field):
-```python
-# Invalid: missing "temperature"
-client.publish("device/sensor-1/telemetry", json.dumps({"humidity": 60}), qos=1)
-```
-
-3. Verify on cluster: only valid messages arrive, invalid ones are dropped at the edge
-
-### Step 2c: Topic Mapping (if selected)
-
-Verify MQTT wildcard captures become Danube message attributes:
-
-1. Publish to `device/sensor-42/telemetry`
-2. On cluster, consume from `/edge1/telemetry`
-3. Verify message has attribute `device_id = sensor-42` (extracted from `+` wildcard)
-4. Publish to `device/sensor-99/telemetry`
-5. Verify attribute `device_id = sensor-99`
-
-### Step 2d: Store-and-Forward (if selected)
+### Step 2b: Store-and-Forward (if selected)
 
 1. Publish messages via MQTT while cluster is up — verify they replicate
 2. Stop all cluster brokers (simulating network outage)
@@ -189,8 +156,6 @@ Verify MQTT wildcard captures become Danube message attributes:
 | Test | Pass Criteria |
 |------|--------------|
 | **Full Pipeline** | All 4 tests pass (valid accepted, raw accepted, invalid dropped, full pipeline verified) |
-| **Schema Validation** | Valid payloads reach cluster, invalid payloads dropped at edge (never reach cluster) |
-| **Topic Mapping** | MQTT wildcards extracted as Danube message attributes (device_id matches MQTT topic segment) |
 | **Store-and-Forward** | Messages published during cluster outage are replicated after cluster recovery |
 
 ```bash

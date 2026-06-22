@@ -32,14 +32,15 @@ Key filtering and poison handling work on standalone. Partitioned Key-Shared ben
 
 ### 1. Which Key-Shared feature to test?
 
-| User says | Test Flow |
-|-----------|-----------|
-| "filter", "glob", "key filter", "routing" | **Key Filtering** — consumers with glob patterns receive only matching keys |
-| "partitioned", "partitions", "key-shared with partitions" | **Partitioned Key-Shared** — Key-Shared subscription on a partitioned topic |
-| "poison", "nack", "failure", "block", "drop" | **Poison Handling** — NACK exhaustion with block/drop policies on Key-Shared |
-| "mixed", "filtered + unfiltered" | **Mixed Filters** — one consumer with filter, one without, verify routing |
-| "churn", "join", "consumer join" | **Consumer Churn** — consumer joins Key-Shared subscription mid-traffic |
-| *(unclear)* | Default: **Key Filtering** |
+Present these options to the user **exactly as listed**:
+
+1. **Key Filtering**: Consumers with glob-based key filters receive only matching keys. Tests both pure filtering (all consumers have filters) and mixed mode (one filtered, one unfiltered — the unfiltered consumer gets remaining keys). Verify total messages across all consumers equals total sent.
+
+2. **Partitioned Key-Shared**: Key-Shared subscription on a partitioned topic. Verify per-key affinity is maintained across partitions and messages distribute across consumers. Includes consumer churn — a new consumer joins mid-traffic, keys may redistribute but per-key ordering is preserved.
+
+3. **Poison Handling**: Test failure policies on Key-Shared with reliable dispatch — drop (poisoned message skipped, key unblocked for new messages) and block (only the affected key stalls, other keys continue). Also verifies NACK redelivery preserves key affinity (same key → same consumer).
+
+Each aspect maps to the corresponding `Step 2x` in Execution Steps below.
 
 ### 2. Tool or Client Language?
 
@@ -78,6 +79,8 @@ danube-admin topics create /default/ks-advanced-test --dispatch-strategy reliabl
 
 ### Step 2a: Key Filtering (if selected)
 
+#### Pure Filtering
+
 Two consumers with different glob filters on the same Key-Shared subscription.
 
 Generate a script that:
@@ -93,7 +96,7 @@ Generate a script that:
 - `"eu-*"` — matches `eu-west`, `eu-east`
 - `"ship?"` — matches `ship1`, `shipA` (single char wildcard)
 
-### Step 2b: Mixed Filters (if selected)
+#### Mixed Filters
 
 One consumer with a filter, one without (accepts all keys):
 
@@ -103,7 +106,7 @@ One consumer with a filter, one without (accepts all keys):
 4. Verify: Consumer B gets all `vip-*` messages, Consumer A gets `regular-*` messages
 5. Total messages across both consumers = total sent
 
-### Step 2c: Partitioned Key-Shared (if selected)
+### Step 2b: Partitioned Key-Shared (if selected)
 
 Key-Shared on a partitioned topic:
 
@@ -121,9 +124,16 @@ Key-Shared on a partitioned topic:
 4. Send second batch of messages
 5. Verify: keys may be redistributed, but per-key ordering is preserved within each consumer
 
-### Step 2d: Poison Handling (if selected)
+### Step 2c: Poison Handling (if selected)
 
 Key-Shared with failure policies — tests what happens when a consumer NACKs a message until retries are exhausted.
+
+#### NACK Redelivery (Key Affinity)
+
+1. Set failure policy with retries allowed
+2. Send message with key, consumer NACKs
+3. Verify: same message redelivered to the SAME consumer (key affinity preserved)
+4. Consumer acks on second attempt
 
 #### Drop Policy (skip poisoned message, continue with same key)
 
@@ -164,26 +174,17 @@ danube-admin topics set-failure-policy /default/ks-advanced-test \
 4. Verify: "healthy-key" message IS delivered (different key, different slot)
 5. Verify: "poison-key" is stalled (blocked)
 
-### Step 2e: NACK Redelivery (if selected)
-
-Basic NACK test specific to Key-Shared:
-
-1. Set failure policy with retries allowed
-2. Send message with key, consumer NACKs
-3. Verify: same message redelivered to the SAME consumer (key affinity preserved)
-4. Consumer acks on second attempt
-
 ## Verification
 
 | Test | Pass Criteria |
 |------|--------------|
-| **Key Filtering** | Each consumer only receives messages matching its glob pattern |
-| **Mixed Filters** | Filtered consumer gets matching keys, unfiltered gets the rest, total = sent |
+| **Key Filtering (Pure)** | Each consumer only receives messages matching its glob pattern |
+| **Key Filtering (Mixed)** | Filtered consumer gets matching keys, unfiltered gets the rest, total = sent |
 | **Partitioned Key-Shared** | Per-key affinity across partitions, distribution across consumers |
 | **Consumer Churn** | Keys redistributed, per-key ordering preserved |
+| **NACK Redelivery** | Same message redelivered to same consumer (key affinity) |
 | **Drop Policy** | Poisoned message skipped, key unblocked for new messages |
 | **Block Policy** | Only affected key stalled, other keys continue normally |
-| **NACK Redelivery** | Same message redelivered to same consumer (key affinity) |
 
 ```bash
 # Inspect topic state

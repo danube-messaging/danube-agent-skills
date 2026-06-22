@@ -29,13 +29,15 @@ Cluster health tests require a **cluster** (3 nodes minimum) to test Raft re-ele
 
 ### 1. Which cluster health aspect to test?
 
-| User says | Test Flow |
-|-----------|-----------|
-| "follower restart", "non-leader restart", "broker restart" | **Follower Restart** — kill a non-leader broker, restart with same data-dir, verify topics reconciled |
-| "leader restart", "leader kill", "re-election" | **Leader Restart** — kill the Raft leader, verify re-election, restart old leader |
-| "failover", "topic reassignment", "broker removal" | **Broker Failover** — remove a broker from Raft, kill it, verify topics reassigned to survivors |
-| "health check", "diagnostics", "status" | **Health Check** — run full cluster diagnostics (status, balance, topics, logs) |
-| *(unclear)* | Default: **Follower Restart** |
+Present these options to the user **exactly as listed**:
+
+1. **Follower Restart**: Kill a non-leader broker, restart it with the same data directory. Verify it rejoins the Raft cluster, resumes as a voter, and its topics are reconciled — tests fast restart within the TTL window.
+
+2. **Leader Restart**: Kill the Raft leader, verify a new leader is elected by the remaining voters, then restart the old leader. Verify it rejoins as a follower, all topics are intact, and the cluster returns to full strength.
+
+3. **Broker Failover**: Simulate a permanent broker failure — remove from Raft and kill the process (without graceful unloading). Verify topics from the failed broker are reassigned to surviving brokers and no topics are lost.
+
+Each aspect maps to the corresponding `Step 2x` in Execution Steps below.
 
 ### 2. Tool or Client Language?
 
@@ -45,6 +47,22 @@ Cluster health tests require a **cluster** (3 nodes minimum) to test Raft re-ele
 | *(unclear)* | Default: **danube-admin CLI** (all verification uses admin commands) |
 
 **Note:** Most cluster health tests use `danube-admin` CLI exclusively. Client libraries are only needed if the user wants to verify produce/consume continuity across restarts.
+
+### AI Reference: Health Check Commands
+
+The `cluster_health_check.sh` script and the commands below are used *within* the aspects above for verification. They are documented here for AI reference, not as a user-facing aspect.
+
+```bash
+# Run the predefined health check script
+./scenarios/cluster-health/scripts/cluster_health_check.sh [ADMIN_ENDPOINT] [LOG_DIR]
+
+# Or manually:
+danube-admin cluster status                          # Raft state, leader, voters
+danube-admin brokers list                             # Broker states
+danube-admin brokers balance                          # Load distribution
+danube-admin topics list --namespace default           # Topic assignments
+grep -iE "error|panic|fatal" $TEST_RUN/logs/*.log     # Log errors
+```
 
 ## Predefined Scripts
 
@@ -154,33 +172,6 @@ danube-admin cluster remove-node --node-id <ID>
    - All topics reassigned to remaining brokers
    - No topics lost
 
-### Step 2d: Health Check (if selected)
-
-**Use the predefined script** (recommended):
-```bash
-./scenarios/cluster-health/scripts/cluster_health_check.sh http://127.0.0.1:50051 $TEST_RUN/logs
-```
-
-Or manually:
-
-```bash
-# 1. Raft cluster state
-danube-admin cluster status
-
-# 2. Broker states
-danube-admin brokers list
-
-# 3. Load distribution
-danube-admin brokers balance
-
-# 4. All topics
-danube-admin topics list --namespace default
-
-# 5. Broker logs — scan for errors
-tail -50 $TEST_RUN/logs/broker_6650.log
-tail -50 $TEST_RUN/logs/broker_6651.log
-tail -50 $TEST_RUN/logs/broker_6652.log
-```
 
 ## Verification
 
@@ -189,7 +180,6 @@ tail -50 $TEST_RUN/logs/broker_6652.log
 | **Follower Restart** | 3 voters intact, broker "active" (fast restart), topics reconciled, total topics unchanged |
 | **Leader Restart** | New leader elected, 3 voters after rejoin, broker "active", all topics exist |
 | **Broker Failover** | N-1 voters, all topics reassigned to survivors, no topics lost |
-| **Health Check** | All brokers active, balanced distribution, no errors in logs |
 
 ```bash
 # Key verification commands

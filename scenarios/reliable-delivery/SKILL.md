@@ -31,15 +31,17 @@ All tests work on standalone. Reconnection failover is more meaningful with Shar
 
 ### 1. Which reliable delivery aspect to test?
 
-| User says | Test Flow |
-|-----------|-----------|
-| "basic", "simple", "at-least-once" | **Basic Reliable** — reliable produce/consume, verify ack-based delivery |
-| "nack", "negative ack", "redelivery", "retry" | **NACK Redelivery** — consumer NACKs a message, verify it's redelivered |
-| "timeout", "ack timeout", "no ack" | **Ack Timeout** — consumer doesn't ack, verify broker redelivers after timeout |
-| "poison", "failure policy", "block", "drop" | **Failure Policies** — test block (stops progress) vs drop (skips message) vs dead-letter (routes to DLQ) |
-| "dead letter", "dlq", "dead-letter queue" | **Dead Letter Queue** — poison message routed to DLQ with metadata |
-| "reconnect", "disconnect", "failover" | **Consumer Reconnection** — consumer disconnects, pending messages resent to another consumer |
-| *(unclear)* | Default: **Basic Reliable** |
+Present these options to the user **exactly as listed**:
+
+1. **Basic Reliable**: Produce and consume messages with reliable dispatch (at-least-once). Verify all messages are received, each is explicitly acknowledged, and the producer receives message IDs as confirmation.
+
+2. **Redelivery (NACK & Timeout)**: Test both redelivery triggers — consumer explicitly NACKs a message (immediate redelivery) and consumer fails to ack within the timeout (broker-initiated redelivery). Verify the same message is redelivered with the same offset in both cases.
+
+3. **Failure Policies**: Test what happens when a message exhausts its retry budget — block (subscription stalls), drop (message skipped, next delivered), or dead-letter (message routed to a DLQ topic with origin metadata). Covers all three poison message strategies.
+
+4. **Consumer Reconnection**: Two consumers share a Shared subscription. When one consumer disconnects, verify the broker resends its pending (unacked) messages to the surviving consumer. Tests failover behavior.
+
+Each aspect maps to the corresponding `Step 2x` in Execution Steps below.
 
 ### 2. Tool or Client Language?
 
@@ -76,14 +78,7 @@ danube-admin topics create /default/reliable-test --dispatch-strategy reliable
 4. Consumer receives and acks each message
 5. Verify: all messages received, producer got message IDs (acknowledgments)
 
-### Step 2b: NACK Redelivery (if selected)
-
-1. Create reliable producer + consumer
-2. Send 1 message
-3. Consumer receives the message but calls `consumer.nack(message, delay_ms=0, reason="retry")`
-4. Consumer receives the SAME message again (redelivery)
-5. Consumer acks the redelivered message
-6. Verify: same payload and same `topic_offset` on redelivery
+### Step 2b: Redelivery — NACK & Timeout (if selected)
 
 **Before running:** Set a failure policy to allow retries:
 
@@ -98,16 +93,18 @@ danube-admin topics set-failure-policy /default/reliable-test \
   --poison-policy block
 ```
 
-### Step 2c: Ack Timeout Redelivery (if selected)
+#### Part 1: NACK Redelivery
 
 1. Create reliable producer + consumer
-2. Set failure policy with short ack timeout (e.g., 200ms)
-3. Send 1 message
-4. Consumer receives the message but does NOT ack it
-5. Wait for timeout — broker redelivers the same message
-6. Consumer acks the redelivered message
-7. Verify: same payload and same `topic_offset`
+2. Send 1 message
+3. Consumer receives the message but calls `consumer.nack(message, delay_ms=0, reason="retry")`
+4. Consumer receives the SAME message again (redelivery)
+5. Consumer acks the redelivered message
+6. Verify: same payload and same `topic_offset` on redelivery
 
+#### Part 2: Ack Timeout Redelivery
+
+1. Update failure policy with short ack timeout:
 ```bash
 danube-admin topics set-failure-policy /default/reliable-test \
   --subscription test-sub \
@@ -118,8 +115,13 @@ danube-admin topics set-failure-policy /default/reliable-test \
   --backoff-strategy fixed \
   --poison-policy block
 ```
+2. Send 1 message
+3. Consumer receives the message but does NOT ack it
+4. Wait for timeout — broker redelivers the same message
+5. Consumer acks the redelivered message
+6. Verify: same payload and same `topic_offset`
 
-### Step 2d: Failure Policies (if selected)
+### Step 2c: Failure Policies (if selected)
 
 Three sub-flows depending on which policy the user wants:
 
@@ -175,7 +177,7 @@ danube-admin topics set-failure-policy /default/reliable-test \
   --dead-letter-topic /default/reliable-test-dlq
 ```
 
-### Step 2e: Consumer Reconnection (if selected)
+### Step 2d: Consumer Reconnection (if selected)
 
 1. Create reliable producer + 2 Shared consumers on same subscription
 2. Send message, consumer A receives it
