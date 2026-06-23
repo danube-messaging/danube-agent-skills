@@ -10,6 +10,8 @@ Testing a distributed messaging system usually involves reading docs, downloadin
 
 Whether you're a developer trying out Danube for the first time, or a platform engineer validating cluster failover, there's a scenario for that.
 
+While primarily designed for testing, the skills can also be used independently to write Danube client code in any supported language or to deploy a test danube cluster.
+
 ## Getting Started
 
 ### 1. Clone the Repository
@@ -42,9 +44,13 @@ Just type a prompt. Here are some examples:
 
 > *"Set up a secure cluster with TLS and test RBAC permissions"*
 
-> *"Test edge MQTT ingestion with store-and-forward"*
+> *"Test edge MQTT ingestion flow"*
 
 > *"Just bring up a Danube cluster so I can play with it"*
+
+> *"Write a Python producer that sends JSON messages with schema validation"*
+
+> *"Help me integrate Danube into my Go microservice"*
 
 The AI reads the `AGENTS.md` and `SKILL.md` files, asks you a few clarifying questions (what to test, which setup method), and then executes everything step by step.
 
@@ -103,11 +109,15 @@ The AI will ask which setup method to use. Pick whichever fits your environment:
 | **Docker Compose** | Container-based setups, supports special infrastructure (MinIO, Valkey) |
 | **Kubernetes** | Production-like testing, deploys via Helm chart |
 
+## Cluster Administration
+
+For day-to-day cluster administration (managing topics, namespaces, schemas, security, monitoring), use the [Danube MCP Server](https://danube-messaging.com/admin/mcp/) instead. It provides direct tool integration with your AI assistant for real-time cluster management, which is a much better experience than the reference skills in this repository.
+
 ## Repository Structure
 
 ```text
 danube-agent-skills/
-├── AGENTS.md             # AI entry point — routes to the right scenario
+├── AGENTS.md             # AI entry point, routes to the right scenario
 ├── scenarios/            # Test workflows (one per feature area)
 │   ├── core-messaging/
 │   ├── subscription-patterns/

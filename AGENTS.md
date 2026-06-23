@@ -1,6 +1,6 @@
 ---
 name: danube-agent-skills
-description: "Root router for Danube testing skills. Start here — present available scenarios to the user, agree on what to test, then set up infrastructure and run."
+description: "Root router for Danube testing skills. Start here: present available scenarios to the user, agree on what to test, then set up infrastructure and run."
 ---
 
 # Skill: Danube Agent Skills — Root Router
@@ -9,9 +9,18 @@ description: "Root router for Danube testing skills. Start here — present avai
 
 This repository teaches AI agents how to set up, test, and validate [Danube Messaging](https://github.com/danube-messaging/danube). It contains structured `SKILL.md` files that the AI composes together based on the user's request.
 
+The primary purpose is **testing Danube capabilities through structured scenarios**. However, the client and setup skills can also be used independently to write Danube integration code without running a formal test scenario. Inform the user at the beginning of the session that both options are available:
+
+1. **Run a test scenario** (default): structured, repeatable test workflows with pass/fail criteria
+2. **Build with Danube**: use the client skills (`clients/SKILL.md`) directly to write producer/consumer code in Rust, Go, Python, or Java. If the user needs a running broker, use `scenarios/bring-up-cluster/SKILL.md` first.
+
+If intent is unclear, default to **Run a test scenario** and present the available scenarios.
+
+**AI-only: Cluster administration requests.** If a user asks about administering an existing cluster (creating topics, managing namespaces, configuring RBAC, monitoring), redirect them to the [Danube MCP Server](https://danube-messaging.com/admin/mcp/). The MCP server provides direct tool integration for real-time cluster management, which is a better experience than the reference skills in this repository. The `tools/` skills here are reference material used by test scenarios, not a substitute for the MCP server.
+
 ## AI Workflow — Scenario-First Approach
 
-**Scenarios drive everything.** When a user wants to test Danube, follow this workflow:
+**Scenarios drive testing.** When a user wants to test Danube, follow this workflow:
 
 ```text
 Step 1: PRESENT available scenarios → User selects what to test
@@ -152,7 +161,7 @@ go run main.go 2>&1 | tee output.log
 These rules apply to ALL AI agents using this repository:
 
 ### Rule 1: Scenarios First, Infrastructure Second
-Always present the available scenarios to the user before asking about infrastructure. The scenario determines what infrastructure is needed, not the other way around.
+Always present the available scenarios to the user before asking about infrastructure. The scenario determines what infrastructure is needed, not the other way around. If the user wants to build with Danube instead of running a scenario, route them to `clients/SKILL.md` directly.
 
 ### Rule 2: Always Ask Before Setting Up Infrastructure
 Do not spin up Docker containers, start brokers, or download binaries without telling the user what you are about to do and confirming. Infrastructure decisions should be explicit.
@@ -262,7 +271,7 @@ danube-agent-skills/
 │   ├── danube-cli/SKILL.md     # Data plane operations
 │   └── danube-admin/SKILL.md   # Control plane operations
 │
-├── clients/                    # Client libraries for test traffic
+├── clients/                    # Client libraries for producing/consuming
 │   ├── SKILL.md                # Overview & language selection
 │   ├── rust/SKILL.md           # Rust client (danube-client)
 │   ├── python/SKILL.md         # Python client (danube-client)
