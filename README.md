@@ -1,14 +1,14 @@
 # Danube Agent Skills
 
-**Test [Danube Messaging](https://github.com/danube-messaging/danube) using AI — from basic messaging to cluster operations, with zero manual setup.**
+**Test [Danube Messaging](https://github.com/danube-messaging/danube) using AI, from basic messaging to cluster operations, with zero manual setup.**
 
-This repository contains structured skill files that teach AI coding assistants how to set up, configure, and test Danube clusters. Open it in your AI-powered IDE, describe what you want to test, and the AI handles everything — downloading binaries, starting brokers, running tests, and reporting results.
+This repository contains structured skill files that teach AI coding assistants how to set up, configure, and test Danube clusters. Open it in your AI-powered IDE, describe what you want to test, and the AI handles everything: downloading binaries, starting brokers, running tests, and reporting results.
 
 ## Why This Exists
 
 Testing a distributed messaging system usually involves reading docs, downloading binaries, writing configs, and wiring up producers and consumers by hand. **Danube Agent Skills automates all of that.** You describe what you want to test in plain English, and the AI executes a structured, repeatable test scenario.
 
-Whether you're a developer trying out Danube for the first time, or a platform engineer validating cluster failover — there's a scenario for that.
+Whether you're a developer trying out Danube for the first time, or a platform engineer validating cluster failover, there's a scenario for that.
 
 ## Getting Started
 
@@ -69,9 +69,9 @@ For application developers building on top of Danube:
 
 | Scenario | What It Tests |
 |----------|--------------|
-| **Core Messaging** | Basic produce/consume — pick your subscription type (Exclusive, Shared, Key-Shared, Failover), reliability mode, partitions, and schema. The foundational "hello world" for Danube. |
+| **Core Messaging** | Basic produce/consume: pick your subscription type (Exclusive, Shared, Key-Shared, Failover), reliability mode, partitions, and schema. The foundational "hello world" for Danube. |
 | **Subscription Patterns** | Fan-out (broadcast to all consumers) vs Queue (round-robin work distribution) vs Consumer Churn (join/leave mid-traffic). Understand how messages are routed. |
-| **Reliable Delivery** | At-least-once guarantees — NACK redelivery, ack timeout, failure policies (block/drop/dead-letter), and consumer reconnection failover. The features that keep production systems reliable. |
+| **Reliable Delivery** | At-least-once guarantees: NACK redelivery, ack timeout, failure policies (block/drop/dead-letter), and consumer reconnection failover. The features that keep production systems reliable. |
 | **Schema Lifecycle** | Schema registration, validation, compatibility modes (backward/forward/full/none), version pinning, and topic-level schema locking. Control how your data evolves. |
 | **Key-Shared Advanced** | Glob-based key filtering, Key-Shared on partitioned topics, and poison message handling. Advanced routing beyond basic per-key affinity. |
 
@@ -98,10 +98,10 @@ The AI will ask which setup method to use. Pick whichever fits your environment:
 
 | Method | Best For |
 |--------|---------|
-| **Local Binary** | Quickest start — downloads pre-built binaries, no dependencies beyond `curl` |
-| **Local Source** | Developers working on the Danube codebase — builds from source with `cargo` |
-| **Docker Compose** | Container-based setups — supports special infrastructure (MinIO, Valkey) |
-| **Kubernetes** | Production-like testing — deploys via Helm chart |
+| **Local Binary** | Quickest start, downloads pre-built binaries, no dependencies beyond `curl` |
+| **Local Source** | Developers working on the Danube codebase, builds from source with `cargo` |
+| **Docker Compose** | Container-based setups, supports special infrastructure (MinIO, Valkey) |
+| **Kubernetes** | Production-like testing, deploys via Helm chart |
 
 ## Repository Structure
 

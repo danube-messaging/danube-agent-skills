@@ -159,6 +159,43 @@ Each setup has a dedicated cleanup command via `scripts/cleanup.sh`:
 ./scripts/cleanup.sh all       # All of the above + remove test-run directories
 ```
 
+## AI Agent: Keeping Local Brokers Alive
+
+**This section applies to `setup_local_binary.sh` and `setup_local_source.sh` only.** Docker Compose and Kubernetes are NOT affected — their processes are managed by Docker/K8s, not as child processes.
+
+### The Problem
+
+Local binary and source setups start brokers using `nohup ... &` as background child processes. In sandboxed AI environments (Claude Code, Cursor, Antigravity, etc.), when the setup script's command finishes, the sandbox terminates all child processes spawned by that command — including the `nohup`'d brokers. The brokers start successfully, pass all health checks, and then die seconds later when the parent command exits.
+
+### The Solution
+
+Run the setup script as a **background task** with `tail -f` appended to keep the parent process alive:
+
+```bash
+# Local Binary — standalone
+./scripts/setup_local_binary.sh standalone v0.15.0 && tail -f runs/test_*/logs/broker_standalone.log
+
+# Local Binary — cluster (3 brokers)
+./scripts/setup_local_binary.sh cluster v0.15.0 3 && tail -f runs/test_*/logs/broker_6650.log
+
+# Local Source — standalone
+./scripts/setup_local_source.sh standalone && tail -f runs/test_*/logs/broker_standalone.log
+
+# Local Source — cluster
+./scripts/setup_local_source.sh cluster && tail -f runs/test_*/logs/broker_6650.log
+```
+
+**Why this works:** `tail -f` never exits — it keeps the background task alive, which keeps the process group alive, which keeps the broker processes alive. The brokers will stay running for the entire testing session until the user asks to tear down.
+
+**How to run it:** Use a low `WaitMsBeforeAsync` (e.g., 500ms) so the command is sent to the background as a task. Then wait ~30 seconds for the setup script to complete before issuing further commands.
+
+**How to tear down:** Kill the background task, then run `./scripts/cleanup.sh binary` (or `source`). Or just run the cleanup script — it will kill the broker processes, which will cause `tail -f` to exit naturally.
+
+### Not Affected
+
+- **`setup_docker_compose.sh`** — Docker manages container lifecycle. Containers survive command completion.
+- **`setup_kubernetes.sh`** — Kubernetes manages pod lifecycle. Pods survive command completion.
+
 ## Troubleshooting (Common Across Methods)
 
 ### Port Already in Use

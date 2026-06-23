@@ -60,6 +60,27 @@ All clients use the same builder pattern:
 5. **Send/receive** → `producer.send(payload)` / `consumer.receive()`
 6. **Acknowledge** → `consumer.ack(message)`
 
+## Python Virtual Environment
+
+Many scenarios use Python for test scripts (e.g., `test_mqtt_ingestion.py`, schema validation, producer/consumer scripts). The AI must use a virtual environment to avoid system package conflicts.
+
+**Use a single `.venv` at the repo root** — not per test run. This is persistent across all `$TEST_RUN` sessions and avoids re-installing dependencies on every run.
+
+```bash
+# Create once (if .venv doesn't exist)
+python3 -m venv .venv
+
+# Activate before running any Python
+source .venv/bin/activate
+
+# Install scenario-specific dependencies
+pip install danube-client            # Core Danube client
+pip install paho-mqtt==1.6.1         # Edge/MQTT scenarios
+pip install -r scenarios/edge-mqtt/scripts/requirements.txt  # Or use requirements files
+```
+
+The `.venv/` directory is git-ignored. When starting a new test session, check if `.venv` exists and activate it — only create a new one if it's missing.
+
 ## Installation
 
 The AI should auto-install the client library for the chosen language. Read the specific language SKILL.md for the install command.
