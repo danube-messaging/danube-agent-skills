@@ -1,145 +1,42 @@
 # Danube Agent Skills
 
-**Test [Danube Messaging](https://github.com/danube-messaging/danube) using AI, from basic messaging to cluster operations, with zero manual setup.**
+Lightweight skills for AI agents that run and use [Danube](https://github.com/danube-messaging/danube). You only need the `danube` binary and these two skills, no Rust source checkout required.
 
-This repository contains structured skill files that teach AI coding assistants how to set up, configure, and test Danube clusters. Open it in your AI-powered IDE, describe what you want to test, and the AI handles everything: downloading binaries, starting brokers, running tests, and reporting results.
+## Why only two skills?
 
-## Why This Exists
+Danube ships a built-in MCP server (`danube mcp`) with 71 admin, schema, RBAC, diagnostic, log, and metric tools. Agents learn those tools directly from MCP.
 
-Testing a distributed messaging system usually involves reading docs, downloading binaries, writing configs, and wiring up producers and consumers by hand. **Danube Agent Skills automates all of that.** You describe what you want to test in plain English, and the AI executes a structured, repeatable test scenario.
+These two skills cover the pieces outside MCP:
 
-Whether you're a developer trying out Danube for the first time, or a platform engineer validating cluster failover, there's a scenario for that.
+- **[danube-bootstrap](skills/danube-bootstrap/SKILL.md):** start standalone nodes, Raft clusters, edge MQTT gateways, TLS/auto-TLS, and wire `danube mcp`.
+- **[danube-messaging](skills/danube-messaging/SKILL.md):** produce and consume messages (reliable and realtime) via `danube produce` / `danube consume` and `danube-client` agent primitives.
 
-While primarily designed for testing, the skills can also be used independently to write Danube client code in any supported language or to deploy a test danube cluster.
+Read [AGENTS.md](AGENTS.md) for the routing rule between Skills and `danube mcp`.
 
-## Getting Started
+## Quick Setup
 
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/danube-messaging/danube-agent-skills.git
-cd danube-agent-skills
-```
-
-### 2. Open in Your AI IDE
-
-Open this folder in any AI-powered IDE or terminal:
-
-- [Claude Code](https://docs.anthropic.com/en/docs/build-with-claude/claude-code/overview) / [Antigravity](https://deepmind.google/)
-- [Cursor](https://cursor.sh/) / [Windsurf](https://codeium.com/windsurf)
-- [VS Code + Copilot](https://code.visualstudio.com/docs/copilot/overview)
-- Or any agent that reads `AGENTS.md` / `SKILL.md` files
-
-### 3. Tell the AI What You Want to Test
-
-Just type a prompt. Here are some examples:
-
-> *"I want to test reliable delivery with NACK redelivery"*
-
-> *"Set up a 3-node cluster and test broker scaling"*
-
-> *"Test fan-out vs queue subscription patterns using Python"*
-
-> *"I want to try schema validation with backward compatibility"*
-
-> *"Set up a secure cluster with TLS and test RBAC permissions"*
-
-> *"Test edge MQTT ingestion flow"*
-
-> *"Just bring up a Danube cluster so I can play with it"*
-
-> *"Write a Python producer that sends JSON messages with schema validation"*
-
-> *"Help me integrate Danube into my Go microservice"*
-
-The AI reads the `AGENTS.md` and `SKILL.md` files, asks you a few clarifying questions (what to test, which setup method), and then executes everything step by step.
-
-### You Don't Need to Download Anything
-
-The setup scripts handle everything automatically:
-
-- **Binaries** — downloaded from GitHub Releases to a local `bin/` directory
-- **Configs** — generated from templates in `configs/`
-- **Client libraries** — installed via `pip`, `cargo`, `go get`, or `maven` as needed
-- **Infrastructure** — brokers started, clusters formed, namespaces created
-
-Each test run creates an isolated directory under `runs/` with all configs, logs, and data. Nothing is shared between runs.
-
-## Scenarios
-
-Scenarios are structured test workflows. Each one has a clear objective, deterministic test aspects to choose from, step-by-step instructions, and pass/fail criteria.
-
-### User Functionality
-
-For application developers building on top of Danube:
-
-| Scenario | What It Tests |
-|----------|--------------|
-| **Core Messaging** | Basic produce/consume: pick your subscription type (Exclusive, Shared, Key-Shared, Failover), reliability mode, partitions, and schema. The foundational "hello world" for Danube. |
-| **Subscription Patterns** | Fan-out (broadcast to all consumers) vs Queue (round-robin work distribution) vs Consumer Churn (join/leave mid-traffic). Understand how messages are routed. |
-| **Reliable Delivery** | At-least-once guarantees: NACK redelivery, ack timeout, failure policies (block/drop/dead-letter), and consumer reconnection failover. The features that keep production systems reliable. |
-| **Schema Lifecycle** | Schema registration, validation, compatibility modes (backward/forward/full/none), version pinning, and topic-level schema locking. Control how your data evolves. |
-| **Key-Shared Advanced** | Glob-based key filtering, Key-Shared on partitioned topics, and poison message handling. Advanced routing beyond basic per-key affinity. |
-
-### Operational
-
-For platform teams and cluster administrators:
-
-| Scenario | What It Tests |
-|----------|--------------|
-| **Broker Scaling & Rebalancing** | Scale up (add a broker via Raft join), scale down (safely decommission), and reliable topic move with zero message loss. The full cluster lifecycle. |
-| **Cluster Health & Broker Restart** | Follower restart, leader restart with Raft re-election, and broker failover with topic reassignment. Verify your cluster recovers from failures. |
-| **Security & RBAC** | TLS certificate setup, JWT token management, RBAC roles/bindings, and PermissionDenied enforcement. Secure your cluster end-to-end. |
-| **Edge MQTT Replication** | MQTT devices publish to the edge gateway, which validates schemas, extracts attributes from topic wildcards, and replicates to the cluster. Includes store-and-forward during outages. |
-
-### Infrastructure Only
-
-| Scenario | What It Does |
-|----------|-------------|
-| **Bring Up Cluster** | Get a running Danube (standalone or cluster) for ad-hoc use — no automated test. Just a working Danube you can interact with. |
-
-## Setup Methods
-
-The AI will ask which setup method to use. Pick whichever fits your environment:
-
-| Method | Best For |
-|--------|---------|
-| **Local Binary** | Quickest start, downloads pre-built binaries, no dependencies beyond `curl` |
-| **Local Source** | Developers working on the Danube codebase, builds from source with `cargo` |
-| **Docker Compose** | Container-based setups, supports special infrastructure (MinIO, Valkey) |
-| **Kubernetes** | Production-like testing, deploys via Helm chart |
-
-## Cluster Administration
-
-For day-to-day cluster administration (managing topics, namespaces, schemas, security, monitoring), use the [Danube MCP Server](https://danube-messaging.com/admin/mcp/) instead. It provides direct tool integration with your AI assistant for real-time cluster management, which is a much better experience than the reference skills in this repository.
-
-## Repository Structure
-
-```text
-danube-agent-skills/
-├── AGENTS.md             # AI entry point, routes to the right scenario
-├── scenarios/            # Test workflows (one per feature area)
-│   ├── core-messaging/
-│   ├── subscription-patterns/
-│   ├── reliable-delivery/
-│   ├── schema-lifecycle/
-│   ├── key-shared-advanced/
-│   ├── broker-scaling/
-│   ├── cluster-health/
-│   ├── security-rbac/
-│   ├── edge-mqtt/
-│   └── bring-up-cluster/
-├── setups/               # Infrastructure setup methods
-│   ├── local-binary/
-│   ├── local-source/
-│   ├── docker-compose/
-│   └── kubernetes/
-├── configs/              # Broker config templates & flavors
-├── tools/                # danube-cli and danube-admin references
-├── clients/              # Client library skills (Python, Rust, Go, Java)
-└── runs/                 # Auto-generated test directories (git-ignored)
-```
+1. Install the `danube` binary from [Danube Releases](https://github.com/danube-messaging/danube/releases) (or use `ghcr.io/danube-messaging/danube`).
+2. Clone this repo or install the skills into your agent (Claude Code, Antigravity, Cursor, Codex):
+   ```bash
+   git clone https://github.com/danube-messaging/danube-agent-skills.git
+   ```
+   Or install with the Skills CLI:
+   ```bash
+   npx skills add danube-messaging/danube-agent-skills
+   ```
+3. Add `danube mcp` to your agent's MCP config:
+   ```json
+   {
+     "mcpServers": {
+       "danube": {
+         "command": "danube",
+         "args": ["mcp", "--endpoint", "http://127.0.0.1:6650"]
+       }
+     }
+   }
+   ```
+4. Ask your agent to start a node, create a `task_queue` topic, stream test messages, or diagnose a stalled consumer.
 
 ## License
 
-Apache License 2.0 — see [LICENSE](LICENSE) for details.
+Apache 2.0. See [LICENSE](LICENSE).
