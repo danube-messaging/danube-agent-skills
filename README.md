@@ -1,15 +1,16 @@
 # Danube Agent Skills
 
-Lightweight skills for AI agents that run and use [Danube](https://github.com/danube-messaging/danube). You only need the `danube` binary and these two skills, no Rust source checkout required.
+Lightweight skills for AI agents that run and build on [Danube](https://github.com/danube-messaging/danube). You only need the `danube` binary and these three skills, no Danube source checkout required.
 
-## Why only two skills?
+## Why only three skills?
 
 Danube ships a built-in MCP server (`danube mcp`) with 71 admin, schema, RBAC, diagnostic, log, and metric tools. Agents learn those tools directly from MCP.
 
-These two skills cover the pieces outside MCP:
+These three skills cover everything outside MCP:
 
 - **[danube-bootstrap](skills/danube-bootstrap/SKILL.md):** start standalone nodes, Raft clusters, edge MQTT gateways, TLS/auto-TLS, and wire `danube mcp`.
-- **[danube-messaging](skills/danube-messaging/SKILL.md):** produce and consume messages (reliable and realtime) via `danube produce` / `danube consume` and `danube-client` agent primitives.
+- **[danube-messaging](skills/danube-messaging/SKILL.md):** produce and consume messages from the CLI (`danube produce`, `danube consume`).
+- **[danube-sdk](skills/danube-sdk/SKILL.md):** build producers, consumers, and agent workers in Rust, Go, Java, or Python (with parity notes and Rust agent primitives).
 
 Read [AGENTS.md](AGENTS.md) for the routing rule between Skills and `danube mcp`.
 
@@ -35,7 +36,7 @@ Read [AGENTS.md](AGENTS.md) for the routing rule between Skills and `danube mcp`
      }
    }
    ```
-4. Ask your agent to start a node, create a `task_queue` topic, stream test messages, or diagnose a stalled consumer.
+4. Ask your agent to start a node, create a `task_queue` topic, stream test messages, diagnose a stalled consumer, or write a worker in Rust, Go, Java, or Python.
 
 ## License
 

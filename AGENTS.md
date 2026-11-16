@@ -1,18 +1,19 @@
 # AGENTS.md
 
-Instructions for AI agents operating a Danube deployment without needing the Danube source repository.
+Instructions for AI agents operating or building on a Danube deployment without needing the Danube source repository.
 
 ## How Skills and MCP Work Together
 
 Danube splits agent capabilities into two parts:
 
-1. **Skills (this repo):** cover what MCP cannot do on its own: starting nodes, bootstrapping clusters/TLS, and sending or receiving messages through the CLI or SDK.
+1. **Skills (this repo):** cover what MCP cannot do on its own: starting nodes, sending/receiving CLI messages, and writing application/worker code with Danube client SDKs.
 2. **MCP (`danube mcp`):** exposes 71 admin, schema, RBAC, diagnostic, log, and metric tools plus 4 guided prompts and `danube://metrics`. Once a node is running, MCP tool schemas teach you how to operate the cluster directly.
 
 ## Routing Rule: Use the Right Surface
 
 - **Starting, stopping, or joining nodes (`danube up ...`):** use `skills/danube-bootstrap/SKILL.md`.
-- **Producing or consuming messages (`danube produce`, `danube consume`, or `danube-client`):** use `skills/danube-messaging/SKILL.md`.
+- **Quick CLI produce/consume smoke tests (`danube produce`, `danube consume`):** use `skills/danube-messaging/SKILL.md`.
+- **Writing producers, consumers, or AI agent workers in code (Rust, Go, Java, Python):** use `skills/danube-sdk/SKILL.md` and read only the language file needed under `skills/danube-sdk/references/`.
 - **Operating and inspecting a running cluster:** prefer **`danube mcp` tools** over shell admin commands whenever MCP is connected:
   - Cluster & nodes: `cluster_status`, `list_brokers`, `get_leader`, `get_cluster_balance`, `trigger_rebalance`, `unload_broker`, `activate_broker`, `add_cluster_node`, `promote_cluster_node`, `remove_cluster_node`, `apply_desired_state`.
   - Namespaces & topics: `list_namespaces`, `create_namespace`, `list_topics`, `describe_topic`, `create_topic` (with `intent`), `list_subscriptions`, `branch_topic`, `seek_subscription`, `replay_dlq`.
@@ -28,3 +29,4 @@ If MCP is not connected yet, use `skills/danube-bootstrap/SKILL.md` to start a n
 - On MCP destructive operations (`delete_topic`, `delete_namespace`, `unload_broker`, `remove_cluster_node`, `seek_subscription`, `replay_dlq`, etc.), preview with `dry_run: true` where supported and confirm intent before passing `confirm_destructive: true`.
 - `peek_messages` and `infer_topic_schema` require the `ReadPayload` permission on secured clusters.
 - `danube consume` defaults to `--limit 0` (runs forever). Always pass `--limit <N>` or run it in the background with a bounded check.
+- On new reliable topics, start consumers before producing so the initial subscription cursor sees the messages.
